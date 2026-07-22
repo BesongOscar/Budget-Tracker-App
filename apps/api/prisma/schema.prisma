@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String
+  fullName          String?
+  currencyCode      String    @default("USD")
+  expoPushToken     String?
+  emailVerifiedAt   DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  refreshTokens     RefreshToken[]
+  categories        Category[]
+  transactions      Transaction[]
+  budgets           Budget[]
+  verificationToken VerificationToken?
+  passwordResetToken PasswordResetToken?
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id             String        @id @default(cuid())
+  name           String
+  icon           String?
+  color          String?
+  type           TransactionType
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deletedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  transactions   Transaction[]
+  budgets        Budget[]
+
+  @@unique([userId, name])
+}
+
+model Transaction {
+  id            String          @id @default(cuid())
+  amount        Decimal         @db.Decimal(12, 2)
+  description   String?
+  date          DateTime
+  type          TransactionType
+  categoryId    String
+  category      Category        @relation(fields: [categoryId], references: [id])
+  userId        String
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model Budget {
+  id            String   @id @default(cuid())
+  limitAmount   Decimal  @db.Decimal(12, 2)
+  spentAmount   Decimal  @default(0) @db.Decimal(12, 2)
+  periodMonth   String
+  categoryId    String
+  category      Category @relation(fields: [categoryId], references: [id])
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, categoryId, periodMonth])
+}
+
+model VerificationToken {
+  id        String   @id @default(cuid())
+  code      String
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  code      String
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
