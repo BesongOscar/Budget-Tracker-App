@@ -9,7 +9,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
-    let error = 'Internal Server Error';
+    let code = 'INTERNAL_SERVER_ERROR';
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -17,17 +17,20 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
       if (typeof res === 'string') {
         message = res;
+        code = res.toUpperCase().replace(/\s+/g, '_');
       } else if (typeof res === 'object') {
         const obj = res as any;
-        message = obj.message || message;
-        error = obj.error || error;
+        message = Array.isArray(obj.message) ? obj.message.join(', ') : (obj.message || message);
+        code = obj.error || obj.code || message.toUpperCase().replace(/\s+/g, '_');
       }
     }
 
     response.status(status).json({
-      statusCode: status,
-      message: Array.isArray(message) ? message.join(', ') : message,
-      error,
+      error: {
+        code,
+        message,
+        status,
+      },
     });
   }
 }

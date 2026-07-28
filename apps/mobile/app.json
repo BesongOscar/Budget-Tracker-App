@@ -47,6 +47,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "abf646f6-cae5-4564-9dae-fb3d2cded066"
+      }
+    },
+    "owner": "besong_oscar"
   }
 }

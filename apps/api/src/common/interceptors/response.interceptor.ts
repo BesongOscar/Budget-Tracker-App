@@ -8,7 +8,9 @@ export class ResponseInterceptor implements NestInterceptor {
     return next.handle().pipe(
       map((data) => ({
         data,
-        meta: {},
+        meta: {
+          timestamp: new Date().toISOString(),
+        },
       })),
     );
   }

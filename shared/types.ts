@@ -1,5 +1,7 @@
 export type TransactionType = 'INCOME' | 'EXPENSE';
 
+export type BudgetStatus = 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'OVER_BUDGET' | 'ARCHIVED';
+
 export interface User {
   id: string;
   email: string;
@@ -12,8 +14,8 @@ export interface User {
 export interface Category {
   id: string;
   name: string;
-  icon: string | null;
-  color: string | null;
+  icon: string;
+  color: string;
   type: TransactionType;
   userId: string;
   deletedAt: string | null;
@@ -33,20 +35,37 @@ export interface Transaction {
 
 export interface Budget {
   id: string;
-  limitAmount: number;
+  allocatedAmount: number;
   spentAmount: number;
+  status: BudgetStatus;
   periodMonth: string;
   categoryId: string;
   category?: Category;
   userId: string;
 }
 
+export interface BudgetProgressItem {
+  categoryId: string;
+  categoryName: string;
+  icon: string;
+  colorHex: string;
+  allocated: number;
+  spent: number;
+  remaining: number;
+  percentUsed: number;
+  status: BudgetStatus;
+}
+
 export interface DashboardData {
-  balance: number;
+  period: string;
   income: number;
-  expense: number;
+  allocated: number;
+  spent: number;
+  balance: number;
+  remainingToAllocate: number;
+  isOverAllocated: boolean;
+  budgetProgress: BudgetProgressItem[];
   recentTransactions: Transaction[];
-  budgetProgress: Budget[];
 }
 
 export interface AuthResponse {
