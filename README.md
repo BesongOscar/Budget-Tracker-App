@@ -5,7 +5,7 @@ A mobile-first personal finance app for tracking income, expenses, and monthly b
 ## Features
 
 - **Transaction tracking** — Log income and expenses with categories
-- **Budget management** — Set monthly spending limits per category
+- **Budget management** — Income-first budgeting: allocate funds from income to expense categories, track spending vs allocation
 - **Analytics** — Visualize spending trends over time
 - **Email authentication** — Register, login, email verification, password reset
 - **Push notifications** — Alerts when approaching budget limits (planned)
@@ -122,7 +122,9 @@ Scan the QR code with Expo Go, or press `a` for Android emulator / `i` for iOS s
 
 **Sprint 1 complete** — Project foundation, database schema, full authentication system (register, login, email verification, password reset), and navigation scaffolding are in place.
 
-See [docs/SPRINT_1.md](docs/SPRINT_1.md) for details on what was built.
+**Phase 3 v3 schema update applied** — Budget model updated to income-first model (`allocatedAmount`, `BudgetStatus` enum, performance indexes). Error envelope and response interceptor updated to match design doc.
+
+See [docs/SPRINT_1.md](docs/SPRINT_1.md) for details on Sprint 1 deliverables.
 
 ## License
 

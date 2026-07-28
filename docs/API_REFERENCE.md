@@ -15,7 +15,9 @@ All successful responses are wrapped in a `{ data, meta }` envelope:
 ```json
 {
   "data": { ... },
-  "meta": {}
+  "meta": {
+    "timestamp": "2025-06-14T12:00:00.000Z"
+  }
 }
 ```
 
@@ -23,9 +25,11 @@ All successful responses are wrapped in a `{ data, meta }` envelope:
 
 ```json
 {
-  "statusCode": 400,
-  "message": "Validation failed",
-  "error": "Bad Request"
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid credentials",
+    "status": 401
+  }
 }
 ```
 
@@ -79,7 +83,9 @@ Create a new user account. Seeds 6 default categories and sends a verification e
     "accessToken": "eyJ...",
     "refreshToken": "uuid"
   },
-  "meta": {}
+  "meta": {
+    "timestamp": "2025-06-14T12:00:00.000Z"
+  }
 }
 ```
 
@@ -116,7 +122,9 @@ Authenticate with email and password.
     "accessToken": "eyJ...",
     "refreshToken": "uuid"
   },
-  "meta": {}
+  "meta": {
+    "timestamp": "2025-06-14T12:00:00.000Z"
+  }
 }
 ```
 
@@ -151,7 +159,9 @@ Rotate a refresh token. Returns a new access/refresh token pair. The old refresh
     "accessToken": "eyJ...",
     "refreshToken": "new-uuid"
   },
-  "meta": {}
+  "meta": {
+    "timestamp": "2025-06-14T12:00:00.000Z"
+  }
 }
 ```
 
@@ -177,7 +187,9 @@ Delete a refresh token, effectively logging the user out.
 ```json
 {
   "data": {},
-  "meta": {}
+  "meta": {
+    "timestamp": "2025-06-14T12:00:00.000Z"
+  }
 }
 ```
 
@@ -203,7 +215,9 @@ Verify a user's email address using the 6-digit code sent via email.
   "data": {
     "message": "Email verified successfully"
   },
-  "meta": {}
+  "meta": {
+    "timestamp": "2025-06-14T12:00:00.000Z"
+  }
 }
 ```
 
@@ -231,7 +245,9 @@ Resend the email verification code. Deletes any existing code and generates a ne
   "data": {
     "message": "Verification code sent"
   },
-  "meta": {}
+  "meta": {
+    "timestamp": "2025-06-14T12:00:00.000Z"
+  }
 }
 ```
 
@@ -259,7 +275,9 @@ Send a password reset code to the user's email. Always returns the same message 
   "data": {
     "message": "If an account with that email exists, a password reset code has been sent."
   },
-  "meta": {}
+  "meta": {
+    "timestamp": "2025-06-14T12:00:00.000Z"
+  }
 }
 ```
 
@@ -286,7 +304,9 @@ Reset a user's password using the 6-digit code from the forgot-password email. I
   "data": {
     "message": "Password reset successfully"
   },
-  "meta": {}
+  "meta": {
+    "timestamp": "2025-06-14T12:00:00.000Z"
+  }
 }
 ```
 

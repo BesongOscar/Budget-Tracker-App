@@ -50,7 +50,7 @@ Budget_Tracker_app/
 | `RefreshToken` | JWT refresh tokens with expiry |
 | `Category` | User-defined categories (INCOME/EXPENSE), icon, color |
 | `Transaction` | Amount, description, date, type, linked to category |
-| `Budget` | Monthly spending limits per category |
+| `Budget` | Income-first allocations per expense category per month (`allocatedAmount`, `spentAmount`, `status`) |
 | `VerificationToken` | 6-digit email verification codes (10 min expiry) |
 | `PasswordResetToken` | 6-digit password reset codes (10 min expiry) |
 

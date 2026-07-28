@@ -203,6 +203,9 @@ User (1) ──── (N) Category (1) ──── (N) Transaction
 - **Unique constraints:** `[userId, name]` on Category, `[userId, categoryId, periodMonth]` on Budget prevent duplicates
 - **Decimal precision:** `Decimal(12, 2)` for monetary amounts avoids floating-point issues
 - **Refresh tokens in DB:** Enables server-side revocation (logout, password reset invalidates all devices)
+- **Income-first budgeting:** Income funds a shared pool; users allocate from pool to expense categories. Budgets track `allocatedAmount` (planned) and `spentAmount` (actual), with a `status` lifecycle (DRAFT → ACTIVE → COMPLETED / OVER_BUDGET → ARCHIVED)
+- **BudgetStatus enum:** Server-evaluated only — status transitions enforced in Prisma `$transaction` blocks, never set by the client
+- **Performance indexes:** Indexed on `userId`, `date`, `periodMonth`, and `status` for frequent query patterns
 
 ---
 

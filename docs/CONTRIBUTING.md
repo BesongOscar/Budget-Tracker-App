@@ -140,7 +140,7 @@ npm run lint
    - Use `@Public()` decorator for public endpoints
    - Use `@CurrentUser()` to access the authenticated user
    - Validate request bodies with DTOs + `class-validator`
-   - Return data through the response interceptor (it wraps in `{ data, meta }`)
+   - Return data through the response interceptor (it wraps in `{ data, meta: { timestamp } }`)
 
 ---
 
