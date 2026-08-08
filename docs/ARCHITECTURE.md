@@ -234,14 +234,64 @@ Root Stack
 │   ├── register         # 3-step: Form → Verify → Complete
 │   ├── forgot-password
 │   └── reset-password
+├── add-transaction      # Modal (app-level)
 └── (protected)/         # Authenticated (Tab Navigator)
     ├── (home)/          # Dashboard + analytics sub-route
     ├── (transactions)/  # List + [id] detail
     ├── (budgets)/       # List + [id] detail
-    └── (Profile)/       # Index + categories + settings + insights
+    └── (Profile)/       # Index + categories + category/[id] + settings + insights
 ```
 
 **Auth redirect:** The root layout checks `isAuthenticated` on segment changes and redirects accordingly.
+
+---
+
+## User Data Isolation (Global JwtAuthGuard)
+
+The `JwtAuthGuard` is registered globally in `AppModule` as an `APP_GUARD`:
+
+```typescript
+providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }]
+```
+
+Every controller method therefore requires a valid JWT unless the route is decorated with `@Public()`. The guard reads the verified user payload into `request.user`, which `@CurrentUser('id')` extracts.
+
+**Why global:** Every data query is scoped by `userId` (e.g. `where: { userId, id }`). If a controller forgets its guard, `userId` is `undefined` and Prisma silently ignores the filter — returning every user's rows. A global guard makes "protected by default" the rule and removes the need to remember `@UseGuards` per controller.
+
+```text
+Request ──► JwtAuthGuard (global) ──► @CurrentUser('id') ──► Prisma where { userId }
+                 │
+                 └─ @Public()? ── allow without token (auth endpoints, /health)
+```
+
+---
+
+## Transaction Write Flow
+
+Every transaction create/update/delete runs inside a Prisma `$transaction` block that also recalibrates the affected budget:
+
+```text
+POST /transactions
+   │
+   ├─ 1. Load category; validate category.type === body.type
+   │         └─ mismatch → 422 Unprocessable Entity
+   ├─ 2. Create/update/delete Transaction
+   ├─ 3. RecalculateSpent(userId, categoryId, periodMonth):
+   │         ├─ Sum spentAmount from transactions in period
+   │         ├─ Compare to allocatedAmount
+   │         └─ Set status: DRAFT ↔ ACTIVE ↔ OVER_BUDGET (bidirectional)
+   └─ 4. Commit
+```
+
+`recalculateSpent` runs in the same transaction as the write, so `spentAmount` and `status` can never drift from the transactions they represent. The status is always server-evaluated — the client never sends it.
+
+---
+
+## Response Envelope & Services
+
+- The global `ResponseInterceptor` wraps all successful responses as `{ data, meta: { timestamp } }`
+- Service methods return **raw** data (arrays/objects); the interceptor adds the envelope
+- A service must NOT return a `{ data }` object itself, or the interceptor double-wraps it and the mobile client's `Array.isArray` guard breaks (this bug was fixed in Sprint 2)
 
 ---
 

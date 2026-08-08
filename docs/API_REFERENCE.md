@@ -39,7 +39,7 @@ Errors with multiple validation failures return a comma-separated message string
 
 ## Authentication
 
-Most endpoints require a JWT access token in the `Authorization` header:
+All endpoints except those marked **Auth: Public** require a JWT access token in the `Authorization` header. A global `JwtAuthGuard` enforces this — routes decorated with `@Public()` (the auth endpoints and `GET /health`) are exempt.
 
 ```
 Authorization: Bearer <accessToken>
@@ -312,6 +312,205 @@ Reset a user's password using the 6-digit code from the forgot-password email. I
 
 **Errors:**
 - `401 Unauthorized` — User not found, no code found, code expired, or invalid code
+
+---
+
+## Categories
+
+All category endpoints are scoped to the authenticated user.
+
+### GET `/categories`
+
+List the user's categories.
+
+**Auth:** JWT Required
+
+**Query Params:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | No | Filter by `INCOME` or `EXPENSE` |
+
+**Response (200):**
+
+```json
+{
+  "data": [
+    {
+      "id": "cuid",
+      "name": "Food & Drinks",
+      "icon": "🍕",
+      "color": "#FF3B30",
+      "type": "EXPENSE"
+    }
+  ],
+  "meta": { "timestamp": "2025-06-14T12:00:00.000Z" }
+}
+```
+
+### GET `/categories/:id`
+
+**Auth:** JWT Required
+
+**Errors:**
+- `404 Not Found` — Category not found for this user
+
+### POST `/categories`
+
+Create a category. Category `type` is immutable after creation.
+
+**Auth:** JWT Required
+
+**Request Body:**
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `name` | string | Yes | Max 50 chars |
+| `type` | string | Yes | `INCOME` or `EXPENSE` |
+| `icon` | string | No | Emoji |
+| `color` | string | No | Hex color |
+
+**Errors:**
+- `409 Conflict` — Category name already exists for this user
+- `400 Bad Request` — Validation failed
+
+### PATCH `/categories/:id`
+
+Update category `name`, `icon`, or `color`.
+
+**Auth:** JWT Required
+
+### DELETE `/categories/:id`
+
+Soft-delete a category (sets `deletedAt`; historical transactions are preserved).
+
+**Auth:** JWT Required
+
+**Errors:**
+- `404 Not Found` — Category not found for this user
+
+---
+
+## Transactions
+
+All transaction endpoints are scoped to the authenticated user. A transaction's `type` must match its category's `type`.
+
+### GET `/transactions`
+
+**Auth:** JWT Required
+
+**Query Params:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | No | Filter by `INCOME` or `EXPENSE` |
+| `categoryId` | string | No | Filter by category |
+| `from` | string | No | ISO date range start |
+| `to` | string | No | ISO date range end |
+| `page` | number | No | Pagination page (default 1) |
+| `limit` | number | No | Page size, max 100 (default 20) |
+
+**Response (200):**
+
+```json
+{
+  "data": [
+    {
+      "id": "cuid",
+      "amount": 2500,
+      "description": "Groceries",
+      "type": "EXPENSE",
+      "date": "2025-06-14T12:00:00.000Z",
+      "category": {
+        "id": "cuid",
+        "name": "Food & Drinks",
+        "icon": "🍕",
+        "color": "#FF3B30"
+      }
+    }
+  ],
+  "meta": { "timestamp": "2025-06-14T12:00:00.000Z" }
+}
+```
+
+### GET `/transactions/:id`
+
+**Auth:** JWT Required
+
+**Errors:**
+- `404 Not Found` — Transaction not found for this user
+
+### POST `/transactions`
+
+**Auth:** JWT Required
+
+**Request Body:**
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `amount` | number | Yes | > 0, max 999999999999.99 |
+| `type` | string | Yes | `INCOME` or `EXPENSE` |
+| `categoryId` | string | Yes | Must match `type` |
+| `date` | string | Yes | ISO date |
+| `description` | string | No | Max 255 chars |
+
+**Errors:**
+- `422 Unprocessable Entity` — Transaction type does not match category type
+- `404 Not Found` — Category not found
+- `400 Bad Request` — Validation failed
+
+**Side effects:** updates the linked budget's `spentAmount` and `status` for the transaction's period.
+
+### PATCH `/transactions/:id`
+
+Update any field. Changing `categoryId` or `type` re-validates type/category matching and re-syncs budget spend for both old and new periods.
+
+**Auth:** JWT Required
+
+**Errors:**
+- `422 Unprocessable Entity` — Transaction type does not match category type
+- `404 Not Found` — Transaction or category not found
+
+### DELETE `/transactions/:id`
+
+**Auth:** JWT Required
+
+**Side effects:** subtracts the transaction amount from the linked budget's `spentAmount` and recalculates `status`.
+
+---
+
+## Budgets
+
+### GET `/budgets`
+
+Return the budget for a category within a period, or `null` when no budget exists.
+
+**Auth:** JWT Required
+
+**Query Params:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `categoryId` | string | Yes | Budget category |
+| `periodMonth` | string | No | `YYYY-MM` (defaults to current month) |
+
+**Response (200):**
+
+```json
+{
+  "data": {
+    "id": "cuid",
+    "allocatedAmount": 50000,
+    "spentAmount": 32000,
+    "status": "ACTIVE",
+    "periodMonth": "2026-08",
+    "categoryId": "cuid"
+  },
+  "meta": { "timestamp": "2025-06-14T12:00:00.000Z" }
+}
+```
+
+When no budget exists, `data` is `null`. Budgets cannot yet be created through the API (planned for Sprint 3).
 
 ---
 

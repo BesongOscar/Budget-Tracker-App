@@ -22,3 +22,6 @@
 8. **Category type enforcement** — Income transactions must use income categories; expense transactions must use expense categories. Validated at the API layer on every transaction write.
 9. **Over-allocation: warn, do not block** — Users may have irregular income. Negative `remainingToAllocate` is allowed and shown in red, but not rejected.
 10. **Error envelope format** — Errors return `{ error: { code, message, status } }`. Success returns `{ data, meta: { timestamp } }`. Consistent across all endpoints.
+11. **Global JWT guard for user scoping** — `JwtAuthGuard` registered once as an `APP_GUARD` instead of `@UseGuards` per controller. Missing `userId` makes Prisma ignore the `where` filter (returning all users' rows), so protection is "on by default" and routes opt out via `@Public()`.
+12. **Services return raw data** — Controllers/services return raw arrays/objects and the global `ResponseInterceptor` supplies the `{ data, meta }` envelope. A service returning `{ data }` gets double-wrapped and breaks client `Array.isArray` handling.
+13. **Server-side budget status sync** — `recalculateSpent` runs inside the same Prisma `$transaction` as every transaction write (create/update/delete), so `spentAmount` and `status` always reflect actual transactions.

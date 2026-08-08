@@ -10,6 +10,14 @@ import { StatusBar } from "expo-status-bar";
 import { ThemeProvider, DefaultTheme } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+if (__DEV__) {
+  const origError = console.error;
+  console.error = (...args) => {
+    if (args.some((a) => String(a).includes("Unable to activate keep awake"))) return;
+    origError.call(console, ...args);
+  };
+}
+
 export default function RootLayout() {
   const segments = useSegments();
   const router = useRouter();
@@ -46,11 +54,14 @@ export default function RootLayout() {
         persistOptions={{ persister: asyncStoragePersister }}
       >
         <ThemeProvider value={DefaultTheme}>
-          <StatusBar style="auto" />
+          <StatusBar style="dark" />
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(protected)" options={{ headerShown: false }} />
-            
+            <Stack.Screen
+              name="add-transaction"
+              options={{ presentation: "modal", headerShown: false }}
+            />
           </Stack>
         </ThemeProvider>
       </PersistQueryClientProvider>

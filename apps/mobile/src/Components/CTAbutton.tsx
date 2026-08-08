@@ -12,6 +12,7 @@ type CTAbuttonProps = {
   marginVertical?: number;
   buttonIcon? : keyof typeof Ionicons.glyphMap;
   buttonColor?: string;
+  disabled?: boolean;
 };
 
 const CTAbutton = ({
@@ -23,18 +24,22 @@ const CTAbutton = ({
   borderWidth,
   marginVertical,
   buttonIcon,
-  buttonColor
+  buttonColor,
+  disabled
 }: CTAbuttonProps) => {
   return (
     <TouchableOpacity
       onPress={onPress}
+      disabled={disabled}
+      activeOpacity={disabled ? 1 : 0.7}
       style={[
         styles.button,
         {
           backgroundColor: backgroundcolor,
           borderColor: borderColor,
           borderWidth: borderWidth,
-          marginVertical: marginVertical
+          marginVertical: marginVertical,
+          opacity: disabled ? 0.5 : 1,
         },
       ]}
     >
