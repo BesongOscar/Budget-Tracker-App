@@ -5,11 +5,17 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CategoriesService } from "../categories/categories.service";
-import { BudgetsService } from "../budgets/budgets.service";
+import { BudgetsService, type BudgetEvent } from "../budgets/budgets.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { getPeriodMonth, getMonthRange } from "../common/utils/date.utils";
 import { CreateTransactionDto } from "./dto/create-transaction.dto";
 import { UpdateTransactionDto } from "./dto/update-transaction.dto";
 import { QueryTransactionsDto } from "./dto/query-transactions.dto";
+
+interface BudgetEventContext {
+  events: BudgetEvent[];
+  budget: any;
+}
 
 @Injectable()
 export class TransactionsService {
@@ -17,6 +23,7 @@ export class TransactionsService {
     private readonly prisma: PrismaService,
     private readonly categoriesService: CategoriesService,
     private readonly budgetsService: BudgetsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async findAll(userId: string, query: QueryTransactionsDto) {
@@ -79,6 +86,8 @@ export class TransactionsService {
     const transactionDate = new Date(dto.date);
     const periodMonth = getPeriodMonth(transactionDate);
 
+    const pendingEvents: BudgetEventContext[] = [];
+
     const transaction = await this.prisma.$transaction(async (tx) => {
       const created = await tx.transaction.create({
         data: {
@@ -93,15 +102,21 @@ export class TransactionsService {
       });
 
       if (dto.type === "EXPENSE") {
-        await this.budgetsService.recalculateSpent(
+        const result = await this.budgetsService.recalculateSpent(
           userId,
           dto.categoryId,
           periodMonth,
+          tx,
         );
+        if (result.events.length > 0) {
+          pendingEvents.push({ events: result.events, budget: result.budget });
+        }
       }
 
       return created;
     });
+
+    await this.dispatchBudgetEvents(userId, pendingEvents);
 
     return transaction;
   }
@@ -144,6 +159,8 @@ export class TransactionsService {
     const wasExpense = existing.type === "EXPENSE";
     const isExpense = newType === "EXPENSE";
 
+    const pendingEvents: BudgetEventContext[] = [];
+
     const transaction = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.transaction.update({
         where: { id: transactionId },
@@ -160,11 +177,15 @@ export class TransactionsService {
       });
 
       if (wasExpense) {
-        await this.budgetsService.recalculateSpent(
+        const result = await this.budgetsService.recalculateSpent(
           userId,
           existing.categoryId,
           oldPeriodMonth,
+          tx,
         );
+        if (result.events.length > 0) {
+          pendingEvents.push({ events: result.events, budget: result.budget });
+        }
       }
 
       if (
@@ -172,15 +193,21 @@ export class TransactionsService {
         (newCategoryId !== existing.categoryId ||
           newPeriodMonth !== oldPeriodMonth)
       ) {
-        await this.budgetsService.recalculateSpent(
+        const result = await this.budgetsService.recalculateSpent(
           userId,
           newCategoryId,
           newPeriodMonth,
+          tx,
         );
+        if (result.events.length > 0) {
+          pendingEvents.push({ events: result.events, budget: result.budget });
+        }
       }
 
       return updated;
     });
+
+    await this.dispatchBudgetEvents(userId, pendingEvents);
 
     return transaction;
   }
@@ -197,18 +224,39 @@ export class TransactionsService {
     const periodMonth = getPeriodMonth(existing.date);
     const wasExpense = existing.type === "EXPENSE";
 
+    const pendingEvents: BudgetEventContext[] = [];
+
     await this.prisma.$transaction(async (tx) => {
       await tx.transaction.delete({ where: { id: transactionId } });
 
       if (wasExpense) {
-        await this.budgetsService.recalculateSpent(
+        const result = await this.budgetsService.recalculateSpent(
           userId,
           existing.categoryId,
           periodMonth,
+          tx,
         );
+        if (result.events.length > 0) {
+          pendingEvents.push({ events: result.events, budget: result.budget });
+        }
       }
     });
 
+    await this.dispatchBudgetEvents(userId, pendingEvents);
+
     return { message: "Transaction deleted" };
+  }
+
+  private async dispatchBudgetEvents(
+    userId: string,
+    results: BudgetEventContext[],
+  ): Promise<void> {
+    for (const { events, budget } of results) {
+      await this.notificationsService.notifyBudgetEvents(
+        userId,
+        events,
+        budget,
+      );
+    }
   }
 }

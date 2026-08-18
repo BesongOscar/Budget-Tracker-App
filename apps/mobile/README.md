@@ -1,6 +1,6 @@
 # Budget Tracker Mobile
 
-Expo React Native app for the Budget Tracker. Provides onboarding, authentication, and (in future sprints) transaction tracking, budget management, and analytics.
+Expo React Native app for the Budget Tracker. Provides onboarding, authentication, transaction tracking, income-first budget management, and push notifications for budget events. Analytics is planned for a future sprint.
 
 ## Tech Stack
 
@@ -14,6 +14,7 @@ Expo React Native app for the Budget Tracker. Provides onboarding, authenticatio
 | Formik + Yup | Form handling + validation |
 | Axios | HTTP client |
 | expo-secure-store | Secure token storage |
+| expo-notifications | Push notification registration + handling |
 | Reanimated | Animations |
 
 ## Project Structure
@@ -40,8 +41,9 @@ app/
 │   │   └── [id].tsx                 # Transaction detail
 │   ├── (budgets)/
 │   │   ├── _layout.tsx
-│   │   ├── index.tsx                # Budget overview
-│   │   └── [id].tsx                 # Budget detail
+│   │   ├── index.tsx                # Monthly budget overview + summary
+│   │   ├── [id].tsx                 # Budget detail
+│   │   └── set-budget.tsx           # Create budget modal
 │   └── (Profile)/
 │       ├── _layout.tsx
 │       ├── index.tsx                # Profile
@@ -54,18 +56,25 @@ app/
 src/
 ├── api/
 │   ├── axios.ts                     # Axios instance + interceptors
-│   └── api.ts                       # authApi functions
+│   ├── auth.api.ts                  # Auth endpoints
+│   ├── categories.api.ts            # Category endpoints
+│   ├── transactions.api.ts          # Transaction endpoints
+│   ├── budgets.api.ts               # Budget endpoints
+│   └── users.api.ts                 # Push-token endpoints
 ├── Components/
 │   ├── CTAbutton.tsx                # Reusable action button
 │   ├── CustomTabBar.tsx             # Bottom tab bar with FAB
+│   ├── EmptyState.tsx               # Empty list states
 │   ├── (auth)/
 │   │   ├── OAuthButton.tsx          # Social login placeholder
 │   │   ├── PasswordStrenghtMeter.tsx
 │   │   ├── StepIndicator.tsx        # Registration step indicator
 │   │   └── Verification.tsx         # Verification placeholder
-│   └── (modal)/
-│       ├── add-transaction.tsx      # Add transaction placeholder
-│       └── set-budget.tsx           # Set budget placeholder
+│   └── Budget/
+│       ├── AllocationSummaryCard.tsx  # Income vs allocated summary
+│       ├── BudgetCard.tsx             # Per-category budget row
+│       ├── OverAllocationBanner.tsx   # Over-allocation warning
+│       └── EndOfPeriodPrompt.tsx      # Copy-prev-month prompt
 ├── constants/
 │   ├── config.ts                    # API base URL
 │   ├── onBoardingTheme.ts           # Design tokens
@@ -74,10 +83,16 @@ src/
 │   ├── use-color-scheme.ts
 │   ├── use-color-scheme.web.ts
 │   ├── use-theme-color.ts
-│   └── useAuth.ts                   # Auth hook (login, register, logout, etc.)
+│   ├── useAuth.ts                   # Auth hook (login, register, logout, etc.)
+│   └── usePushNotifications.ts      # Permission, token registration, handler
 ├── store/
 │   └── authStore.ts                 # Zustand auth state
+├── types/
+│   └── budget.ts                    # Budget/period UI types
 └── utils/
+    ├── formatCurrency.ts            # Currency formatting (user's currencyCode)
+    ├── formatDate.ts                # Date formatting
+    ├── month.ts                     # Period-month helpers
     ├── persister.ts                 # AsyncStorage query persister
     └── queryClient.ts               # React Query client config
 ```
@@ -123,7 +138,7 @@ Root Stack
 └── (protected)         # Authenticated users
     ├── (home)          # Dashboard + analytics
     ├── (transactions)  # List + detail
-    ├── (budgets)       # List + detail
+    ├── (budgets)       # List + detail + set-budget modal
     └── (Profile)       # Profile, categories, settings, insights
 ```
 

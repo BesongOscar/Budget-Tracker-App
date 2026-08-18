@@ -1,6 +1,6 @@
 # Budget Tracker API
 
-NestJS backend for the Budget Tracker mobile app. Handles authentication, user management, and (in future sprints) transactions, budgets, and analytics.
+NestJS backend for the Budget Tracker mobile app. Handles authentication, user management, categories, transactions, income-first budgeting, and push notifications via the Expo push service.
 
 ## Tech Stack
 
@@ -13,6 +13,7 @@ NestJS backend for the Budget Tracker mobile app. Handles authentication, user m
 | bcrypt | Password hashing |
 | Nodemailer | Email delivery |
 | ThrottlerModule | Rate limiting |
+| Expo push service | Push notification delivery (fetch-based) |
 
 ## Project Structure
 
@@ -33,6 +34,20 @@ src/
 │   │   └── jwt-auth.guard.ts    # Global JWT guard
 │   └── strategies/
 │       └── jwt.strategy.ts      # Passport JWT strategy
+├── categories/                  # Category CRUD
+├── transactions/                # Transaction CRUD + budget spend sync
+├── budgets/
+│   ├── budgets.controller.ts    # /budgets* routes
+│   ├── budgets.service.ts       # CRUD, copy-period, recalculateSpent, period summaries
+│   ├── dto/                     # create/update/query/copy-period DTOs
+│   └── budgets.module.ts
+├── notifications/
+│   ├── notifications.module.ts  # @Global module
+│   └── notifications.service.ts # Expo push sender + budget event notifications
+├── users/
+│   ├── users.controller.ts      # /users/me/push-token* routes
+│   ├── users.service.ts
+│   └── dto/update-push-token.dto.ts
 ├── common/
 │   ├── decorators/
 │   │   ├── current-user.decorator.ts   # @CurrentUser() param decorator
@@ -98,6 +113,7 @@ The API will be available at `http://localhost:3000/api/v1`.
 | `SMTP_USER` | Yes | — | SMTP username |
 | `SMTP_PASS` | Yes | — | SMTP password |
 | `SMTP_FROM` | No | `Budget Tracker <noreply@budgettracker.com>` | Sender address |
+| `EXPO_PUSH_ENDPOINT` | No | `https://exp.host/--/api/v2/push/send` | Expo push API endpoint |
 
 ## Available Scripts
 

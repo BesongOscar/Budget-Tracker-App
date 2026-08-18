@@ -9,11 +9,13 @@ import { asyncStoragePersister } from "@/src/utils/persister";
 import { StatusBar } from "expo-status-bar";
 import { ThemeProvider, DefaultTheme } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { usePushNotifications } from "@/src/hooks/usePushNotifications";
 
 if (__DEV__) {
   const origError = console.error;
   console.error = (...args) => {
-    if (args.some((a) => String(a).includes("Unable to activate keep awake"))) return;
+    if (args.some((a) => String(a).includes("Unable to activate keep awake")))
+      return;
     origError.call(console, ...args);
   };
 }
@@ -21,9 +23,10 @@ if (__DEV__) {
 export default function RootLayout() {
   const segments = useSegments();
   const router = useRouter();
-
+  usePushNotifications();
   // ASSUMPTION: authStore may expose `isHydrated` when using persisted state.
   // If that property is not available, we assume hydration has completed.
+
   const { isAuthenticated } = useAuthStore();
   const isHydrated = true;
 

@@ -481,9 +481,11 @@ Update any field. Changing `categoryId` or `type` re-validates type/category mat
 
 ## Budgets
 
+Budgets are per expense category per month (`YYYY-MM`). A budget's `status` is always evaluated server-side (never set by the client) and progresses through `DRAFT → ACTIVE → OVER_BUDGET / COMPLETED → ARCHIVED`. Budget writes can trigger push notifications (see [Push Notifications](#push-notifications)).
+
 ### GET `/budgets`
 
-Return the budget for a category within a period, or `null` when no budget exists.
+List the user's budgets for a period, along with a monthly allocation summary. Only non-deleted EXPENSE categories are included.
 
 **Auth:** JWT Required
 
@@ -491,26 +493,217 @@ Return the budget for a category within a period, or `null` when no budget exist
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `categoryId` | string | Yes | Budget category |
-| `periodMonth` | string | No | `YYYY-MM` (defaults to current month) |
+| `month` | string | No | `YYYY-MM` period (defaults to current month) |
+| `periodMonth` | string | No | Alias for `month` |
+| `status` | string | No | Filter by `BudgetStatus` |
+| `categoryId` | string | No | Filter by category |
 
 **Response (200):**
 
 ```json
 {
   "data": {
-    "id": "cuid",
-    "allocatedAmount": 50000,
-    "spentAmount": 32000,
-    "status": "ACTIVE",
-    "periodMonth": "2026-08",
-    "categoryId": "cuid"
+    "budgets": [
+      {
+        "id": "cuid",
+        "allocatedAmount": 50000,
+        "spentAmount": 32000,
+        "status": "ACTIVE",
+        "periodMonth": "2026-08",
+        "categoryId": "cuid",
+        "category": {
+          "id": "cuid",
+          "name": "Food & Drinks",
+          "icon": "🍕",
+          "color": "#FF3B30"
+        }
+      }
+    ],
+    "summary": {
+      "income": 100000,
+      "allocated": 50000,
+      "remainingToAllocate": 50000,
+      "isOverAllocated": false
+    }
   },
-  "meta": { "timestamp": "2025-06-14T12:00:00.000Z" }
+  "meta": { "timestamp": "2026-08-11T12:00:00.000Z" }
 }
 ```
 
-When no budget exists, `data` is `null`. Budgets cannot yet be created through the API (planned for Sprint 3).
+### GET `/budgets/:id`
+
+**Auth:** JWT Required
+
+**Errors:**
+- `404 Not Found` — Budget not found for this user
+
+### POST `/budgets`
+
+Create a budget for an expense category and period.
+
+**Auth:** JWT Required
+
+**Request Body:**
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `categoryId` | string | Yes | Expense category owned by the user |
+| `periodMonth` | string | No | `YYYY-MM` (defaults to current month) |
+| `allocatedAmount` | number | No | ≥ 0, max 999999999999.99 (defaults to 0) |
+
+**Response (201):** the created budget (status `DRAFT`), with `category` included.
+
+**Errors:**
+- `404 Not Found` — Category not found
+- `422 Unprocessable Entity` — Category is an INCOME category
+- `409 Conflict` — A budget already exists for this category and period
+- `400 Bad Request` — Validation failed
+
+**Side effects:** recomputes the period summary; if total allocations exceed total income and no over-allocation warning has been sent for the period yet, an over-allocation push notification is fired.
+
+### PATCH `/budgets/:id`
+
+Update the budget's allocated amount. Status and spend are re-evaluated.
+
+**Auth:** JWT Required
+
+**Request Body:**
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `allocatedAmount` | number | Yes | ≥ 0, max 999999999999.99 |
+
+**Response (200):** the updated budget, with `category` included.
+
+**Errors:**
+- `404 Not Found` — Budget not found for this user
+
+**Side effects:** fires `THRESHOLD_80`/`OVER_BUDGET` notifications when spend crosses the relevant boundary, plus the once-per-period over-allocation warning if applicable.
+
+### DELETE `/budgets/:id`
+
+Delete a budget. Only `DRAFT` or `ARCHIVED` budgets can be deleted.
+
+**Auth:** JWT Required
+
+**Response (200):**
+
+```json
+{
+  "data": { "message": "Budget deleted" },
+  "meta": { "timestamp": "2026-08-11T12:00:00.000Z" }
+}
+```
+
+**Errors:**
+- `404 Not Found` — Budget not found for this user
+- `409 Conflict` — Budget status is not `DRAFT` or `ARCHIVED`
+
+### POST `/budgets/copy-period`
+
+Copy all of a source month's budgets into a target month. Target budgets start with `spentAmount: 0` and status `DRAFT`; existing target budgets are left unchanged (upsert).
+
+**Auth:** JWT Required
+
+**Request Body:**
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `fromMonth` | string | Yes | `YYYY-MM` |
+| `toMonth` | string | Yes | `YYYY-MM`, must differ from `fromMonth` |
+
+**Response (200):**
+
+```json
+{
+  "data": { "copied": 3 },
+  "meta": { "timestamp": "2026-08-11T12:00:00.000Z" }
+}
+```
+
+**Errors:**
+- `400 Bad Request` — Source and target months are the same
+
+**Side effects:** recomputes the target month's summary and may fire the once-per-period over-allocation warning.
+
+---
+
+## Users
+
+All user endpoints are scoped to the authenticated user.
+
+### PATCH `/users/me/push-token`
+
+Register (or replace) the user's Expo push token so budget events can be delivered as push notifications.
+
+**Auth:** JWT Required
+
+**Request Body:**
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `pushToken` | string | Yes | Matches `^(ExponentPushToken|ExpoPushToken)\[[\w-]+\]$` |
+
+**Response (200):**
+
+```json
+{
+  "data": { "message": "Push token saved" },
+  "meta": { "timestamp": "2026-08-11T12:00:00.000Z" }
+}
+```
+
+### DELETE `/users/me/push-token`
+
+Remove the user's push token.
+
+**Auth:** JWT Required
+
+**Response (200):**
+
+```json
+{
+  "data": { "message": "Push token removed" },
+  "meta": { "timestamp": "2026-08-11T12:00:00.000Z" }
+}
+```
+
+### POST `/users/me/push-token/test`
+
+Send a test push notification to the registered token.
+
+**Auth:** JWT Required
+
+**Response (200):**
+
+```json
+{
+  "data": { "message": "Test push sent" },
+  "meta": { "timestamp": "2026-08-11T12:00:00.000Z" }
+}
+```
+
+**Errors:**
+- `404 Not Found` — No push token registered (`PATCH /users/me/push-token` first)
+- `502 Bad Gateway` — Expo rejected the push (see server logs)
+
+---
+
+## Push Notifications
+
+Budget events generate push notifications via the Expo push service:
+
+| Event | When | Title |
+|-------|------|-------|
+| `THRESHOLD_80` | spend crosses 80% of allocation | "Budget almost reached" |
+| `OVER_BUDGET` | spend crosses 100% of allocation | "Budget exceeded" |
+| Over-allocation | total allocated > total income for a period | "Over-allocation warning" |
+
+- Threshold/over-budget events fire only at the moment spend **crosses** the boundary, and only on transaction writes and allocation updates
+- Over-allocation warnings fire **once per period** (tracked in the `BudgetPeriod` record)
+- Notification sends happen **after** the triggering database transaction commits; Expo send failures are logged and do not fail the API request
+- When Expo reports `DeviceNotRegistered` or `InvalidCredentials`, the stored push token is cleared automatically
+- No notification is sent when the user has no registered push token
 
 ---
 
