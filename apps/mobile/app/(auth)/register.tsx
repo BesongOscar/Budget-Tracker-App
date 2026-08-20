@@ -156,7 +156,7 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAwareScrollView
-      style={[styles.container, { paddingTop: insets.top }]}
+      style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
       contentContainerStyle={{ paddingBottom: insets.bottom }}
       keyboardShouldPersistTaps="handled"
       enableOnAndroid

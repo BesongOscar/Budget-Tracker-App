@@ -68,6 +68,8 @@ export default function EditTransactionScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["transaction", id] });
+      queryClient.invalidateQueries({ queryKey: ["budgets"] });
+      queryClient.invalidateQueries({ queryKey: ["budget"] });
       router.back();
     },
   });
@@ -76,6 +78,8 @@ export default function EditTransactionScreen() {
     mutationFn: () => transactionsApi.remove(id!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["budgets"] });
+      queryClient.invalidateQueries({ queryKey: ["budget"] });
       router.back();
     },
   });

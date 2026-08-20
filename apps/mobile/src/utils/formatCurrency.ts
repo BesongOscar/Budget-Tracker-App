@@ -1,15 +1,21 @@
+import { useAuthStore } from "@/src/store/authStore";
+
 const formatters: Record<string, Intl.NumberFormat> = {};
 
 export function formatCurrency(
   amount: number,
-  currencyCode: string = "XAF",
+  currencyCode?: string,
 ): string {
-  if (!formatters[currencyCode]) {
-    formatters[currencyCode] = new Intl.NumberFormat("en-US", {
+  const code =
+    currencyCode ??
+    useAuthStore.getState().user?.currencyCode ??
+    "USD";
+  if (!formatters[code]) {
+    formatters[code] = new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: currencyCode,
+      currency: code,
       minimumFractionDigits: 2,
     });
   }
-  return formatters[currencyCode].format(amount);
+  return formatters[code].format(amount);
 }

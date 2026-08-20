@@ -13,16 +13,19 @@ This document describes the system architecture, key design patterns, and ration
 │   (Expo RN)  │         │   (apps/api)     │         │  Database    │
 │              │         │                  │         │              │
 └──────────────┘         └──────────────────┘         └──────────────┘
-                                  │
-                                  │ SMTP
-                                  ▼
-                          ┌──────────────┐
-                          │  SMTP Server │
-                          │  (Nodemailer) │
-                          └──────────────┘
+      │  │                        │  │
+      │  └── push token (PATCH)   │  │ SMTP
+      │                           │  ▼
+      │                           │  ┌──────────────┐
+      │                           │  │  SMTP Server │
+      │                           │  │  (Nodemailer) │
+      │                           │  └──────────────┘
+      │                           │
+      │  push delivery            │  POST /push/send
+      └──────────────────────────►│  (Expo Push Service) ───────► (OS push)
 ```
 
-The mobile app communicates with the NestJS API over HTTP/JSON. The API persists data to PostgreSQL via Prisma and sends emails via Nodemailer.
+The mobile app communicates with the NestJS API over HTTP/JSON. The API persists data to PostgreSQL via Prisma and sends emails via Nodemailer. Push notifications are delivered through the Expo push service: the app registers its device token with the API, and the API sends a push request to Expo when budget events occur.
 
 ---
 
@@ -190,7 +193,7 @@ Response ◄── Interceptor (handle 401, refresh) ◄───────┘
 ```
 User (1) ──── (N) Category (1) ──── (N) Transaction
    │                │
-   │                └──── (N) Budget
+   │                └──── (N) Budget ──── (1) BudgetPeriod (per user + month)
    │
    ├── (N) RefreshToken
    ├── (1) VerificationToken
@@ -204,6 +207,8 @@ User (1) ──── (N) Category (1) ──── (N) Transaction
 - **Decimal precision:** `Decimal(12, 2)` for monetary amounts avoids floating-point issues
 - **Refresh tokens in DB:** Enables server-side revocation (logout, password reset invalidates all devices)
 - **Income-first budgeting:** Income funds a shared pool; users allocate from pool to expense categories. Budgets track `allocatedAmount` (planned) and `spentAmount` (actual), with a `status` lifecycle (DRAFT → ACTIVE → COMPLETED / OVER_BUDGET → ARCHIVED)
+- **BudgetPeriod:** One row per `(userId, periodMonth)` stores the period's `totalIncome`, `totalAllocated`, and `overAllocationWarnedAt` — the last field makes the over-allocation push warning fire exactly once per period
+- **Push tokens:** `User.expoPushToken` stores the device's Expo push token; it is nulled out automatically when Expo reports the device as unregistered
 - **BudgetStatus enum:** Server-evaluated only — status transitions enforced in Prisma `$transaction` blocks, never set by the client
 - **Performance indexes:** Indexed on `userId`, `date`, `periodMonth`, and `status` for frequent query patterns
 
@@ -238,7 +243,7 @@ Root Stack
 └── (protected)/         # Authenticated (Tab Navigator)
     ├── (home)/          # Dashboard + analytics sub-route
     ├── (transactions)/  # List + [id] detail
-    ├── (budgets)/       # List + [id] detail
+    ├── (budgets)/       # List + [id] detail + set-budget modal
     └── (Profile)/       # Index + categories + category/[id] + settings + insights
 ```
 
@@ -279,11 +284,39 @@ POST /transactions
    ├─ 3. RecalculateSpent(userId, categoryId, periodMonth):
    │         ├─ Sum spentAmount from transactions in period
    │         ├─ Compare to allocatedAmount
+   │         ├─ Emit crossing events (THRESHOLD_80 / OVER_BUDGET)
    │         └─ Set status: DRAFT ↔ ACTIVE ↔ OVER_BUDGET (bidirectional)
-   └─ 4. Commit
+   ├─ 4. Commit
+   └─ 5. After commit: dispatch collected budget events → Expo push
 ```
 
-`recalculateSpent` runs in the same transaction as the write, so `spentAmount` and `status` can never drift from the transactions they represent. The status is always server-evaluated — the client never sends it.
+`recalculateSpent` runs in the same transaction as the write, so `spentAmount` and `status` can never drift from the transactions they represent. The status is always server-evaluated — the client never sends it. Budget events are dispatched only **after** the transaction commits, so a rollback never triggers a notification.
+
+---
+
+## Push Notifications
+
+```
+Mobile                        API                           Expo Push Service
+  │                            │                                │
+  │── request permission       │                                │
+  │── getExpoPushTokenAsync ──►│                                │
+  │                            │                                │
+  │── PATCH /users/me/push-token (once)                         │
+  │                            │── store expoPushToken          │
+  │                            │                                │
+  │   (later) budget event     │                                │
+  │                            │── POST /push/send ────────────►│
+  │                            │   (after DB commit)            │──► OS → app
+  │◄───────────────────────────│                                │
+  │   (app foreground handler: banner + list entry)             │
+```
+
+- The app registers its token once (guarded by a SecureStore flag) and clears it on logout
+- Events: `THRESHOLD_80` ("Budget almost reached"), `OVER_BUDGET` ("Budget exceeded"), and once-per-period over-allocation warnings (tracked via `BudgetPeriod.overAllocationWarnedAt`)
+- Expo send failures are logged and swallowed so they never fail the API request; `DeviceNotRegistered`/`InvalidCredentials` null out the stored token
+- A test push can be triggered from the API via `POST /users/me/push-token/test`
+- Android requires Firebase Cloud Messaging credentials for tokens in development builds; Expo Go uses Expo's own credentials and needs no FCM config
 
 ---
 

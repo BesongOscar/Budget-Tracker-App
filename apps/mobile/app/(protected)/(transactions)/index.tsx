@@ -8,8 +8,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
-import { Ionicons } from "@expo/vector-icons";
 import { transactionsApi } from "@/src/api/transactions.api";
 import { formatCurrency } from "@/src/utils/formatCurrency";
 import {
@@ -23,6 +23,7 @@ type Filter = "ALL" | "INCOME" | "EXPENSE";
 
 export default function TransactionListScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<Filter>("ALL");
 
   const { data, isLoading } = useQuery({
@@ -85,7 +86,7 @@ export default function TransactionListScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Text style={styles.title}>Transactions</Text>
       </View>
@@ -137,7 +138,6 @@ export default function TransactionListScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFFFFF" },
   header: {
-    paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 12,
     backgroundColor: "#FFFFFF",

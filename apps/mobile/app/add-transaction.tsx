@@ -88,7 +88,10 @@ export default function AddTransactionScreen() {
     enabled: !!categoryId,
   });
 
-  const budget = budgetData?.data?.data ?? null;
+  const budget =
+    budgetData?.data?.data?.budgets?.find(
+      (b: any) => b.categoryId === categoryId,
+    ) ?? null;
 
   const allocated = budget ? Number(budget.allocatedAmount) : 0;
   const spent = budget ? Number(budget.spentAmount) : 0;
@@ -96,7 +99,6 @@ export default function AddTransactionScreen() {
   const isOverBudget = budget ? spent > allocated : false;
   const spentPct =
     budget && allocated > 0 ? Math.min(100, (spent / allocated) * 100) : 0;
-
 
   const canSubmit =
     amount && parseFloat(amount) > 0 && categoryId && !createMutation.isPending;
