@@ -628,6 +628,171 @@ Copy all of a source month's budgets into a target month. Target budgets start w
 
 ---
 
+## Analytics
+
+All analytics endpoints are scoped to the authenticated user and provide read-only aggregated data.
+
+### GET `/analytics/summary`
+
+Get income vs expense totals for a given period.
+
+**Auth:** JWT Required
+
+**Query Params:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `periodMonth` | string | No | `YYYY-MM` (defaults to current month) |
+
+**Response (200):**
+
+```json
+{
+  "data": {
+    "period": "2026-08",
+    "totalIncome": 5000,
+    "totalExpenses": 3200,
+    "netBalance": 1800
+  },
+  "meta": { "timestamp": "2026-08-21T12:00:00.000Z" }
+}
+```
+
+### GET `/analytics/by-category`
+
+Get spending breakdown by expense category for a period.
+
+**Auth:** JWT Required
+
+**Query Params:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `periodMonth` | string | No | `YYYY-MM` (defaults to current month) |
+
+**Response (200):**
+
+```json
+{
+  "data": {
+    "period": "2026-08",
+    "categories": [
+      {
+        "categoryId": "cuid",
+        "categoryName": "Food & Drinks",
+        "icon": "🍕",
+        "color": "#FF3B30",
+        "totalSpent": 850,
+        "transactionCount": 12,
+        "percentage": 26.56
+      }
+    ],
+    "grandTotal": 3200
+  },
+  "meta": { "timestamp": "2026-08-21T12:00:00.000Z" }
+}
+```
+
+### GET `/analytics/trend`
+
+Get monthly income and expense totals for the last N months.
+
+**Auth:** JWT Required
+
+**Query Params:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `months` | number | No | Number of months (2–12, defaults to 6) |
+
+**Response (200):**
+
+```json
+{
+  "data": [
+    {
+      "periodMonth": "2026-03",
+      "income": 4500,
+      "expenses": 3800,
+      "netBalance": 700
+    },
+    {
+      "periodMonth": "2026-04",
+      "income": 5000,
+      "expenses": 4200,
+      "netBalance": 800
+    }
+  ],
+  "meta": { "timestamp": "2026-08-21T12:00:00.000Z" }
+}
+```
+
+---
+
+## Dashboard
+
+### GET `/dashboard`
+
+Get the full income-first dashboard payload for a period. Returns income, allocated, spent, all-time balance, remaining to allocate, over-allocation flag, per-category budget progress, and recent transactions.
+
+**Auth:** JWT Required
+
+**Query Params:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `periodMonth` | string | No | `YYYY-MM` (defaults to current month) |
+
+**Response (200):**
+
+```json
+{
+  "data": {
+    "period": "2026-08",
+    "income": 5000,
+    "allocated": 3500,
+    "spent": 2800,
+    "balance": 12450.75,
+    "remainingToAllocate": 1500,
+    "isOverAllocated": false,
+    "budgetProgress": [
+      {
+        "categoryId": "cuid",
+        "categoryName": "Food & Drinks",
+        "icon": "🍕",
+        "colorHex": "#FF3B30",
+        "allocated": 800,
+        "spent": 650,
+        "remaining": 150,
+        "percentUsed": 81,
+        "status": "ACTIVE"
+      }
+    ],
+    "recentTransactions": [
+      {
+        "id": "cuid",
+        "amount": 45.50,
+        "description": "Groceries",
+        "date": "2026-08-20T14:30:00.000Z",
+        "type": "EXPENSE",
+        "categoryId": "cuid",
+        "category": {
+          "id": "cuid",
+          "name": "Food & Drinks",
+          "icon": "🍕",
+          "color": "#FF3B30"
+        }
+      }
+    ]
+  },
+  "meta": { "timestamp": "2026-08-21T12:00:00.000Z" }
+}
+```
+
+**Key distinction:** `balance` is the all-time net worth (`SUM(income) - SUM(expenses)` across all periods). `remainingToAllocate` is the period-scoped allocation budget (`period income - period allocated`). These are intentionally distinct values.
+
+---
+
 ## Users
 
 All user endpoints are scoped to the authenticated user.

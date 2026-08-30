@@ -5,7 +5,14 @@ export default function ProtectedLayout() {
   return (
     <>
       <Tabs tabBar={(props) => <CustomTabBar {...props} />}>
-        <Tabs.Screen name="(home)" options={{ title: "Home", headerShadowVisible: false }} />
+        <Tabs.Screen
+          name="(home)"
+          options={{
+            title: "Home",
+            headerShadowVisible: false,
+            headerShown: false,
+          }}
+        />
         <Tabs.Screen
           name="(transactions)"
           options={{ title: "Transactions", headerShown: false }}

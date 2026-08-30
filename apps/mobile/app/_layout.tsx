@@ -10,6 +10,8 @@ import { StatusBar } from "expo-status-bar";
 import { ThemeProvider, DefaultTheme } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { usePushNotifications } from "@/src/hooks/usePushNotifications";
+import { dashboardApi } from "@/src/api/dashboard.api";
+import { getPeriodMonth } from "@/src/utils/month";
 
 if (__DEV__) {
   const origError = console.error;
@@ -43,6 +45,11 @@ export default function RootLayout() {
     if (!isAuthenticated && inProtectedGroup) {
       router.replace("/(auth)");
     } else if (isAuthenticated && inAuthGroup) {
+      const month = getPeriodMonth();
+      queryClient.prefetchQuery({
+        queryKey: ["dashboard", month],
+        queryFn: () => dashboardApi.getDashboard(month),
+      });
       router.replace("/(protected)/(home)");
     }
     // If currentSegment is undefined or outside both groups (e.g. a route

@@ -10,6 +10,8 @@ import { TransactionsModule } from "./transactions/transactions.module";
 import { BudgetsModule } from "./budgets/budgets.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { UsersModule } from "./users/users.module";
+import { AnalyticsModule } from "./analytics/analytics.module";
+import { DashboardModule } from "./dashboard/dashboard.module";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 
@@ -24,6 +26,8 @@ import { AppService } from "./app.service";
     BudgetsModule,
     NotificationsModule,
     UsersModule,
+    AnalyticsModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: JwtAuthGuard }],

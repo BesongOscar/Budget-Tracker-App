@@ -211,6 +211,8 @@ User (1) ──── (N) Category (1) ──── (N) Transaction
 - **Push tokens:** `User.expoPushToken` stores the device's Expo push token; it is nulled out automatically when Expo reports the device as unregistered
 - **BudgetStatus enum:** Server-evaluated only — status transitions enforced in Prisma `$transaction` blocks, never set by the client
 - **Performance indexes:** Indexed on `userId`, `date`, `periodMonth`, and `status` for frequent query patterns
+- **Analytics module:** Read-only aggregation endpoints (`GET /analytics/summary`, `/by-category`, `/trend`). No new schema models — all queries use existing Transaction and Budget models with Prisma `aggregate` and `groupBy`.
+- **Dashboard module:** Single composite endpoint (`GET /dashboard`) that aggregates income, expenses, allocations, all-time balance, budget progress, and recent transactions in parallel. The `balance` field (all-time) is intentionally distinct from `remainingToAllocate` (period-scoped).
 
 ---
 
@@ -242,9 +244,12 @@ Root Stack
 ├── add-transaction      # Modal (app-level)
 └── (protected)/         # Authenticated (Tab Navigator)
     ├── (home)/          # Dashboard + analytics sub-route
+    │   ├── index        # Dashboard (greeting, balance, budget progress, recent transactions)
+    │   └── analytics    # Donut chart, bar chart, period picker
     ├── (transactions)/  # List + [id] detail
     ├── (budgets)/       # List + [id] detail + set-budget modal
     └── (Profile)/       # Index + categories + category/[id] + settings + insights
+        └── insights     # Budget alerts (80%, over-budget, over-allocation)
 ```
 
 **Auth redirect:** The root layout checks `isAuthenticated` on segment changes and redirects accordingly.
