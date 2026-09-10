@@ -5,8 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
-  Dimensions,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -16,25 +15,28 @@ import { analyticsApi } from "@/src/api/analytics.api";
 import { transactionsApi } from "@/src/api/transactions.api";
 import { getPeriodMonth, getPeriodDateRange } from "@/src/utils/month";
 import { formatCurrency } from "@/src/utils/formatCurrency";
+import { useCurrency } from "@/src/hooks/useCurrency";
 import PeriodPicker from "@/src/Components/Analytics/PeriodPicker";
-
-const SCREEN_WIDTH = Dimensions.get("window").width;
+import LoadingSkeleton from "@/src/Components/LoadingSkeleton";
+import ErrorState from "@/src/Components/ErrorState";
 
 export default function AnalyticsScreen() {
   const router = useRouter();
+  const code = useCurrency();
   const [periodMonth, setPeriodMonth] = useState(getPeriodMonth());
 
-  const { data: byCategoryData, isLoading: loadingCategory } = useQuery({
+  const { data: byCategoryData, isLoading: loadingCategory, isError: byCategoryIsError } = useQuery({
     queryKey: ["analytics", "by-category", periodMonth],
     queryFn: () => analyticsApi.getByCategory(periodMonth),
   });
 
-  const { data: trendData, isLoading: loadingTrend } = useQuery({
+  const trendResult = useQuery({
     queryKey: ["analytics", "trend", 6],
     queryFn: () => analyticsApi.getTrend(6),
   });
+  const { data: trendData, isLoading: loadingTrend, isError: trendIsError, refetch: refetchTrend } = trendResult;
 
-  const { data: transactionsData } = useQuery({
+  const { data: transactionsData, isError: dailyIsError, refetch: refetchDaily } = useQuery({
     queryKey: ["analytics", "daily", periodMonth],
     queryFn: () => {
       const { from, to } = getPeriodDateRange(periodMonth);
@@ -94,6 +96,12 @@ export default function AnalyticsScreen() {
   );
 
   const isLoading = loadingCategory || loadingTrend;
+  const isError = byCategoryIsError || trendIsError || dailyIsError;
+  const refetch = () => {
+    refetchTrend();
+    refetchDaily();
+  };
+  const isRefreshing = isLoading;
 
   return (
     <View style={styles.container}>
@@ -106,16 +114,21 @@ export default function AnalyticsScreen() {
       </View>
 
       {isLoading ? (
-        <View style={styles.loading}>
-          <ActivityIndicator size="large" color="#007AFF" />
-        </View>
+        <LoadingSkeleton rows={5} />
+      ) : isError ? (
+        <ErrorState message="Couldn't load analytics." onRetry={refetch} />
       ) : (
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={refetch} tintColor="#007AFF" />
+          }
+        >
           {/* Summary Card */}
           <View style={styles.card}>
             <Text style={styles.cardLabel}>Total Spent</Text>
             <Text style={styles.cardAmount}>
-              {formatCurrency(currentMonthExpenses)}
+              {formatCurrency(currentMonthExpenses, code)}
             </Text>
             {prevMonthExpenses > 0 && (
               <Text
@@ -145,7 +158,7 @@ export default function AnalyticsScreen() {
                   centerLabelComponent={() => (
                     <View style={styles.centerLabel}>
                       <Text style={styles.centerAmount}>
-                        {formatCurrency(grandTotal)}
+                        {formatCurrency(grandTotal, code)}
                       </Text>
                       <Text style={styles.centerText}>Total</Text>
                     </View>
@@ -173,7 +186,7 @@ export default function AnalyticsScreen() {
                         {c.categoryName}
                       </Text>
                       <Text style={styles.legendAmount}>
-                        {formatCurrency(c.totalSpent)}
+                        {formatCurrency(c.totalSpent, code)}
                       </Text>
                       <Text style={styles.legendPct}>{c.percentage}%</Text>
                     </View>

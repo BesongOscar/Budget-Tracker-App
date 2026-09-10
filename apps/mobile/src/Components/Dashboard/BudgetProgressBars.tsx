@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from "react-native";
 import { formatCurrency } from "@/src/utils/formatCurrency";
+import { useCurrency } from "@/src/hooks/useCurrency";
 
 interface BudgetItem {
   categoryId: string;
@@ -13,7 +14,15 @@ interface BudgetItem {
   status: string;
 }
 
+// 5.16 — threshold colours for budget usage.
+function progressColor(percentUsed: number) {
+  if (percentUsed >= 100) return "#FF3B30"; // red
+  if (percentUsed >= 70) return "#FF9500"; // amber
+  return "#34C759"; // green
+}
+
 export default function BudgetProgressBars({ items }: { items: BudgetItem[] }) {
+  const code = useCurrency();
   if (items.length === 0) return null;
 
   return (
@@ -21,7 +30,8 @@ export default function BudgetProgressBars({ items }: { items: BudgetItem[] }) {
       <Text style={styles.sectionTitle}>Budget Overview</Text>
       <View style={styles.card}>
         {items.map((item, idx) => {
-          const over = item.spent > item.allocated;
+          const pct = item.percentUsed;
+          const fillColor = progressColor(pct);
           return (
             <View
               key={item.categoryId}
@@ -43,15 +53,15 @@ export default function BudgetProgressBars({ items }: { items: BudgetItem[] }) {
                   <Text style={styles.amounts}>
                     <Text
                       style={{
-                        color: over ? "#FF3B30" : "#000",
+                        color: fillColor,
                         fontWeight: "600",
                       }}
                     >
-                      {formatCurrency(item.spent)}
+                      {formatCurrency(item.spent, code)}
                     </Text>
                     {" / "}
                     <Text style={styles.allocated}>
-                      {formatCurrency(item.allocated)}
+                      {formatCurrency(item.allocated, code)}
                     </Text>
                   </Text>
                 </View>
@@ -63,16 +73,16 @@ export default function BudgetProgressBars({ items }: { items: BudgetItem[] }) {
                     style={[
                       styles.progressFill,
                       {
-                        width: `${item.percentUsed}%`,
-                        backgroundColor: over ? "#FF3B30" : "#007AFF",
+                        width: `${pct}%`,
+                        backgroundColor: fillColor,
                       },
                     ]}
                   />
                 </View>
                 <Text
-                  style={[styles.pct, { color: over ? "#FF3B30" : "#8E8E93" }]}
+                  style={[styles.pct, { color: pct >= 100 ? "#FF3B30" : "#8E8E93" }]}
                 >
-                  {item.percentUsed}%
+                  {pct}%
                 </Text>
               </View>
             </View>

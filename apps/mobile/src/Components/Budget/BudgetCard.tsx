@@ -1,6 +1,13 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { formatCurrency } from "@/src/utils/formatCurrency";
+import { useCurrency } from "@/src/hooks/useCurrency";
 import type { Budget } from "@/src/types/budget";
+
+function progressColor(pct: number) {
+  if (pct >= 100) return "#FF3B30";
+  if (pct >= 70) return "#FF9500";
+  return "#34C759";
+}
 
 export default function BudgetCard({
   budget,
@@ -9,11 +16,12 @@ export default function BudgetCard({
   budget: Budget;
   onPress: () => void;
 }) {
+  const code = useCurrency();
   const allocated = Number(budget.allocatedAmount);
   const spent = Number(budget.spentAmount);
-  const over = spent > allocated;
   const pct =
     allocated > 0 ? Math.min(100, Math.round((spent / allocated) * 100)) : 0;
+  const fillColor = progressColor(pct);
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
@@ -39,12 +47,12 @@ export default function BudgetCard({
             {/* Budget Amount */}
             <Text style={styles.amounts}>
               <Text
-                style={[styles.spent, { color: over ? "#FF3B30" : "#000" }]}
+                style={[styles.spent, { color: fillColor }]}
               >
-                {formatCurrency(spent)}
+                {formatCurrency(spent, code)}
               </Text>
               {" / "}
-              <Text style={styles.allocated}>{formatCurrency(allocated)}</Text>
+              <Text style={styles.allocated}>{formatCurrency(allocated, code)}</Text>
             </Text>
           </View>
 
@@ -56,13 +64,13 @@ export default function BudgetCard({
                   styles.progressFill,
                   {
                     width: `${pct}%`,
-                    backgroundColor: over ? "#FF3B30" : "#007AFF",
+                    backgroundColor: fillColor,
                   },
                 ]}
               />
             </View>
             {/* Budget Percentage */}
-            <Text style={[styles.pct, { color: over ? "#FF3B30" : "#8E8E93" }]}>
+            <Text style={[styles.pct, { color: pct >= 100 ? "#FF3B30" : "#8E8E93" }]}>
               {pct}%
             </Text>
           </View>

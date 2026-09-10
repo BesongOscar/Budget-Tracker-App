@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { formatCurrency } from "@/src/utils/formatCurrency";
+import { useCurrency } from "@/src/hooks/useCurrency";
 
 interface Props {
   remainingToAllocate: number;
@@ -11,9 +12,10 @@ export default function RemainingIndicator({
   remainingToAllocate,
   isOverAllocated,
 }: Props) {
+  const code = useCurrency();
   const displayAmount = isOverAllocated
-    ? formatCurrency(-remainingToAllocate)
-    : formatCurrency(remainingToAllocate);
+    ? formatCurrency(-remainingToAllocate, code)
+    : formatCurrency(remainingToAllocate, code);
 
   return (
     <View

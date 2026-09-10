@@ -9,21 +9,32 @@ import {
   FlatList,
   Modal,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { categoriesApi } from "@/src/api/categories.api";
 import { transactionsApi } from "@/src/api/transactions.api";
 import { budgetsApi } from "@/src/api/budgets.api";
 import { formatCurrency } from "@/src/utils/formatCurrency";
+import { useCurrency } from "@/src/hooks/useCurrency";
+import { useOfflineMutation } from "@/src/hooks/useOfflineMutation";
 import CTAbutton from "@/src/Components/CTAbutton";
 
 type TransactionType = "INCOME" | "EXPENSE";
 
+function progressColor(pct: number) {
+  if (pct >= 100) return "#FF3B30";
+  if (pct >= 70) return "#FF9500";
+  return "#34C759";
+}
+
 export default function AddTransactionScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const code = useCurrency();
 
   const [type, setType] = useState<TransactionType>("EXPENSE");
   const [amount, setAmount] = useState("");
@@ -50,8 +61,11 @@ export default function AddTransactionScreen() {
     });
   }, [catData]);
 
-  const createMutation = useMutation({
-    mutationFn: () =>
+  const createMutation = useOfflineMutation<
+    any,
+    undefined
+  >({
+    mutationFn: async () =>
       transactionsApi.create({
         amount: parseFloat(amount),
         type,
@@ -59,6 +73,23 @@ export default function AddTransactionScreen() {
         date: date.toISOString(),
         description: description || undefined,
       }),
+    op: () => ({
+      kind: "transaction",
+      action: "create",
+      payload: {
+        amount: parseFloat(amount),
+        type,
+        categoryId,
+        date: date.toISOString(),
+        description: description || undefined,
+      },
+    }),
+    invalidateKeys: [
+      ["transactions"],
+      ["dashboard"],
+      ["budgets"],
+      ["budget"],
+    ],
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
@@ -99,6 +130,7 @@ export default function AddTransactionScreen() {
   const isOverBudget = budget ? spent > allocated : false;
   const spentPct =
     budget && allocated > 0 ? Math.min(100, (spent / allocated) * 100) : 0;
+  const budgetFillColor = progressColor(isOverBudget ? 100 : spentPct);
 
   const canSubmit =
     amount && parseFloat(amount) > 0 && categoryId && !createMutation.isPending;
@@ -113,7 +145,11 @@ export default function AddTransactionScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.typeRow}>
           {(["EXPENSE", "INCOME"] as TransactionType[]).map((t) => (
             <TouchableOpacity
@@ -194,13 +230,13 @@ export default function AddTransactionScreen() {
                 <View style={styles.budgetRow}>
                   <Text style={styles.budgetLabel}>Allocated</Text>
                   <Text style={styles.budgetValue}>
-                    {formatCurrency(allocated)}
+                    {formatCurrency(allocated, code)}
                   </Text>
                 </View>
                 <View style={styles.budgetRow}>
                   <Text style={styles.budgetLabel}>Spent</Text>
                   <Text style={styles.budgetValue}>
-                    {formatCurrency(spent)}
+                    {formatCurrency(spent, code)}
                   </Text>
                 </View>
                 <View style={styles.budgetRow}>
@@ -211,7 +247,7 @@ export default function AddTransactionScreen() {
                       { color: isOverBudget ? "#FF3B30" : "#34C759" },
                     ]}
                   >
-                    {formatCurrency(remaining)}
+                    {formatCurrency(remaining, code)}
                   </Text>
                 </View>
               </View>
@@ -222,7 +258,7 @@ export default function AddTransactionScreen() {
                     styles.progressFill,
                     {
                       width: `${spentPct}%`,
-                      backgroundColor: isOverBudget ? "#FF3B30" : "#007AFF",
+                      backgroundColor: budgetFillColor,
                     },
                   ]}
                 />
@@ -263,13 +299,14 @@ export default function AddTransactionScreen() {
 
         <CTAbutton
           title="Save Transaction"
-          onPress={() => createMutation.mutate()}
+          onPress={() => createMutation.mutate(undefined as any)}
           backgroundcolor={canSubmit ? "#007AFF" : "#C7C7CC"}
           textColor="#FFFFFF"
           marginVertical={24}
           disabled={!canSubmit || createMutation.isPending}
         />
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       <Modal visible={showCategoryPicker} transparent animationType="slide">
         <TouchableOpacity

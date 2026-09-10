@@ -5,12 +5,12 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   Alert,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { budgetsApi } from "@/src/api/budgets.api";
 import {
@@ -22,28 +22,47 @@ import AllocationSummaryCard from "@/src/Components/Budget/AllocationSummaryCard
 import OverAllocationBanner from "@/src/Components/Budget/OverAllocationBanner";
 import EndOfPeriodPrompt from "@/src/Components/Budget/EndOfPeriodPrompt";
 import BudgetCard from "@/src/Components/Budget/BudgetCard";
+import LoadingSkeleton from "@/src/Components/LoadingSkeleton";
+import ErrorState from "@/src/Components/ErrorState";
+import { useOfflineMutation } from "@/src/hooks/useOfflineMutation";
 
 export default function BudgetOverviewScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const [month, setMonth] = useState(getPeriodMonth());
+  const [refreshing, setRefreshing] = useState(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["budgets", month],
     queryFn: () => budgetsApi.getPeriod({ month }),
   });
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
 
   const payload = data?.data?.data;
   const budgets: any[] = Array.isArray(payload?.budgets) ? payload.budgets : [];
   const summary = payload?.summary;
 
-  const copyMutation = useMutation({
-    mutationFn: () =>
+  const copyMutation = useOfflineMutation<any, undefined>({
+    mutationFn: async () =>
       budgetsApi.copyPeriod({
         fromMonth: shiftPeriodMonth(month, -1),
         toMonth: month,
       }),
+    op: () => ({
+      kind: "budget",
+      action: "copy",
+      payload: {
+        fromMonth: shiftPeriodMonth(month, -1),
+        toMonth: month,
+      },
+    }),
+    invalidateKeys: [["budgets", month]],
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["budgets", month] });
       Alert.alert("Copied", "Last month's budgets were copied.");
@@ -111,17 +130,22 @@ export default function BudgetOverviewScreen() {
       </View>
 
       {isLoading ? (
-        <View style={styles.loading}>
-          <ActivityIndicator size="large" color="#007AFF" />
-        </View>
+        <LoadingSkeleton />
+      ) : isError ? (
+        <ErrorState onRetry={() => refetch()} />
       ) : (
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+        >
           {summary && <AllocationSummaryCard summary={summary} />}
           {summary?.isOverAllocated && <OverAllocationBanner />}
 
           {budgets.length === 0 && (
             <EndOfPeriodPrompt
-              onCopy={() => copyMutation.mutate()}
+              onCopy={() => copyMutation.mutate(undefined as any)}
               isCopying={copyMutation.isPending}
             />
           )}

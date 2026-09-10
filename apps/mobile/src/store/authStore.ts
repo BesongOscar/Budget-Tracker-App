@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useCurrencyStore } from './currencyStore';
 
 interface User {
   id: string;
@@ -20,9 +21,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   accessToken: null,
   isAuthenticated: false,
-  setAuth: (user, accessToken) =>
-    set({ user, accessToken, isAuthenticated: true }),
-  logout: () =>
-    set({ user: null, accessToken: null, isAuthenticated: false }),
-  setUser: (user) => set({ user }),
+  setAuth: (user, accessToken) => {
+  if (user?.currencyCode) useCurrencyStore.getState().setCurrency(user.currencyCode);
+  set({ user, accessToken, isAuthenticated: true });
+},
+setUser: (user) => {
+  if (user?.currencyCode) useCurrencyStore.getState().setCurrency(user.currencyCode);
+  set({ user });
+},
+logout: () => set({ user: null, accessToken: null, isAuthenticated: false }),
 }));

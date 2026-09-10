@@ -6,24 +6,28 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Alert,
-  ActivityIndicator,
   Modal,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { transactionsApi } from "@/src/api/transactions.api";
 import { categoriesApi } from "@/src/api/categories.api";
 import CTAbutton from "@/src/Components/CTAbutton";
+import LoadingSkeleton from "@/src/Components/LoadingSkeleton";
+import ErrorState from "@/src/Components/ErrorState";
+import { confirmDelete } from "@/src/utils/confirmDelete";
+import { useOfflineMutation } from "@/src/hooks/useOfflineMutation";
 
 export default function EditTransactionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const { data: txData, isLoading: txLoading } = useQuery({
+  const { data: txData, isLoading: txLoading, isError: txError, refetch: refetchTx } = useQuery({
     queryKey: ["transaction", id],
     queryFn: () => transactionsApi.getOne(id!),
     enabled: !!id,
@@ -57,14 +61,31 @@ export default function EditTransactionScreen() {
     }
   }, [transaction, initialized]);
 
-  const updateMutation = useMutation({
-    mutationFn: () =>
+  const updateMutation = useOfflineMutation<any, undefined>({
+    mutationFn: async () =>
       transactionsApi.update(id!, {
         amount: parseFloat(amount),
         categoryId,
         date: date.toISOString(),
         description: description || undefined,
       }),
+    op: () => ({
+      kind: "transaction",
+      action: "update",
+      id,
+      payload: {
+        amount: parseFloat(amount),
+        categoryId,
+        date: date.toISOString(),
+        description: description || undefined,
+      },
+    }),
+    invalidateKeys: [
+      ["transactions"],
+      ["transaction", id!],
+      ["budgets"],
+      ["budget"],
+    ],
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["transaction", id] });
@@ -74,8 +95,14 @@ export default function EditTransactionScreen() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: () => transactionsApi.remove(id!),
+  const deleteMutation = useOfflineMutation<any, undefined>({
+    mutationFn: async () => transactionsApi.remove(id!),
+    op: () => ({ kind: "transaction", action: "delete", id }),
+    invalidateKeys: [
+      ["transactions"],
+      ["budgets"],
+      ["budget"],
+    ],
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["budgets"] });
@@ -85,28 +112,30 @@ export default function EditTransactionScreen() {
   });
 
   const handleDelete = () => {
-    Alert.alert("Delete Transaction", "Are you sure?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => deleteMutation.mutate(),
-      },
-    ]);
+    confirmDelete({
+      title: "Delete Transaction",
+      message: "Are you sure?",
+      onConfirm: () => deleteMutation.mutate(undefined as any),
+    });
   };
 
   const selectedCategory = categories.find((c: any) => c.id === categoryId);
 
-  if (txLoading || !transaction) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
+  if (txLoading) {
+    return <LoadingSkeleton />;
+  }
+
+  if (txError || !transaction) {
+    return <ErrorState onRetry={() => refetchTx()} />;
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <View style={styles.container}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="#000000" />
@@ -177,7 +206,7 @@ export default function EditTransactionScreen() {
       <View style={{ paddingHorizontal: 20, marginVertical: 20 }}>
         <CTAbutton
           title="Save Changes"
-          onPress={() => updateMutation.mutate()}
+          onPress={() => updateMutation.mutate(undefined as any)}
           backgroundcolor="#007AFF"
           textColor="#FFFFFF"
           buttonColor="#FFFFFF"
@@ -193,6 +222,8 @@ export default function EditTransactionScreen() {
           marginVertical={12}
         />
       </View>
+      </ScrollView>
+      </KeyboardAvoidingView>
 
       <Modal visible={showCategoryPicker} transparent animationType="slide">
         <TouchableOpacity
@@ -235,7 +266,7 @@ export default function EditTransactionScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
-    </ScrollView>
+    </View>
   );
 }
 
