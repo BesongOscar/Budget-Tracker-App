@@ -137,7 +137,7 @@ Mobile                    API                     Email
 
 ### Zustand (Client State)
 
-Used exclusively for authentication state:
+Used for authentication state (Sprint 1) and, since Sprint 5, reactive currency + the offline write queue:
 
 ```typescript
 // src/store/authStore.ts
@@ -149,9 +149,25 @@ Used exclusively for authentication state:
   logout: () => void,
   setUser: (user) => void
 }
+
+// src/store/currencyStore.ts
+{
+  currencyCode: string,       // e.g. "USD" (default)
+  setCurrency: (code: string) => void
+}
+
+// src/store/offlineQueueStore.ts
+{
+  queue: OfflineOp[],         // persisted to AsyncStorage (BUDGET_TRACKER_OUTBOX)
+  enqueue: (op: OfflineOp) => void,
+  dequeue: (uid: string) => void,
+  clear: () => void
+}
 ```
 
 **Why Zustand:** Minimal API, no boilerplate, works outside React components (needed for Axios interceptors). No Redux overhead for a solo-auth state.
+
+**Currency reactivity:** the `useCurrency()` hook subscribes to `currencyStore`; every currency-displaying screen passes its reactive `code` into `formatCurrency`. `authStore.setAuth/setUser` sync the authenticated user's `currencyCode` into the currency store, so login and profile saves always keep formatting consistent.
 
 ### TanStack React Query (Server State)
 
@@ -322,6 +338,37 @@ Mobile                        API                           Expo Push Service
 - Expo send failures are logged and swallowed so they never fail the API request; `DeviceNotRegistered`/`InvalidCredentials` null out the stored token
 - A test push can be triggered from the API via `POST /users/me/push-token/test`
 - Android requires Firebase Cloud Messaging credentials for tokens in development builds; Expo Go uses Expo's own credentials and needs no FCM config
+
+---
+
+## Offline Mode (Write Queue)
+
+Sprint 5 made the app offline-first. Reads come from React Query's persisted cache (AsyncStorage persister, in place since Sprint 2); writes are intercepted and queued while offline, then replayed on reconnect.
+
+```text
+useMutation ──► useOfflineMutation
+                   │
+       isOffline?  │
+          ┌────────┴────────┐
+          │ enqueue op      │  resolve { __queued: true }
+          │ (AsyncStorage   │  ──► UI completes as if saved
+          │  outbox)        │
+          └────────┬────────┘
+                   │
+                   │ (on reconnect)  useOfflineSync
+                   ▼
+            replay FIFO ──► API
+             success: dequeue, cache.invalidate()
+             failure: stop replay (preserve ordering)
+```
+
+Key pieces:
+
+- **`useNetwork`** — NetInfo subscription; `isOffline` treats the initial `null` as online so the banner never flashes on cold start. Drives the `OfflineBanner` and gates `useOfflineMutation`.
+- **`offlineQueueStore`** — Zustand outbox persisted to AsyncStorage (`BUDGET_TRACKER_OUTBOX`); entries carry `uid`, `op` (create/update/delete/copy), and `createdAt` for deterministic replay ordering.
+- **`useOfflineMutation`** — `useMutation` drop-in. Online: normal API call. Offline: enqueues to the outbox and resolves with a `{ __queued: true }` sentinel so the caller's `onSuccess` (navigation, cache invalidation) runs unchanged.
+- **`useOfflineSync`** — flushes the outbox FIFO when connectivity returns; each op is removed only after it succeeds, and a failure stops replay so writes can never be replayed out of order. Lives in `app/_layout.tsx` via an `OfflineSyncBridge` component inside `PersistQueryClientProvider` (where `useQueryClient()` resolves).
+- **Coverage** — all transaction, category, budget, and profile (name + currency) mutations go through `useOfflineMutation`. The notification test-push toggle is intentionally online-only (push delivery requires the network).
 
 ---
 
