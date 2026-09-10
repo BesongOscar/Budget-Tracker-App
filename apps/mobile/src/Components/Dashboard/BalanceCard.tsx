@@ -1,14 +1,16 @@
 import { View, Text, StyleSheet } from "react-native";
 import { formatCurrency } from "@/src/utils/formatCurrency";
+import { useCurrency } from "@/src/hooks/useCurrency";
 
 export default function BalanceCard({ balance }: { balance: number }) {
+  const code = useCurrency();
   return (
     <View style={styles.card}>
       <Text style={styles.label}>Total Balance</Text>
       <Text
         style={[styles.amount, { color: balance >= 0 ? "#FFF" : "#FF3B30" }]}
       >
-        {formatCurrency(balance)}
+        {formatCurrency(balance, code)}
       </Text>
     </View>
   );

@@ -6,14 +6,18 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
-  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { categoriesApi } from "@/src/api/categories.api";
 import CTAbutton from "@/src/Components/CTAbutton";
+import LoadingSkeleton from "@/src/Components/LoadingSkeleton";
+import ErrorState from "@/src/Components/ErrorState";
+import { confirmDelete } from "@/src/utils/confirmDelete";
+import { useOfflineMutation } from "@/src/hooks/useOfflineMutation";
 
 const COLOR_OPTIONS = [
   "#FF3B30",
@@ -52,7 +56,7 @@ export default function EditCategoryScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["category", id],
     queryFn: () => categoriesApi.getOne(id),
   });
@@ -71,8 +75,10 @@ export default function EditCategoryScreen() {
     initialized[0] = true;
   }
 
-  const updateMutation = useMutation({
-    mutationFn: () => categoriesApi.update(id!, { name, icon, color }),
+  const updateMutation = useOfflineMutation<any, undefined>({
+    mutationFn: async () => categoriesApi.update(id!, { name, icon, color }),
+    op: () => ({ kind: "category", action: "update", id, payload: { name, icon, color } }),
+    invalidateKeys: [["categories"], ["category", id!]],
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       queryClient.invalidateQueries({ queryKey: ["category", id] });
@@ -80,8 +86,10 @@ export default function EditCategoryScreen() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: () => categoriesApi.remove(id!),
+  const deleteMutation = useOfflineMutation<any, undefined>({
+    mutationFn: async () => categoriesApi.remove(id!),
+    op: () => ({ kind: "category", action: "delete", id }),
+    invalidateKeys: [["categories"], ["category", id!]],
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       queryClient.invalidateQueries({ queryKey: ["category", id] });
@@ -90,30 +98,27 @@ export default function EditCategoryScreen() {
   });
 
   const handleDelete = () => {
-    Alert.alert(
-      "Delete Category",
-      `Are you sure you want to delete "${category?.name}"?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => deleteMutation.mutate(),
-        },
-      ],
-    );
+    confirmDelete({
+      title: "Delete Category",
+      message: `Are you sure you want to delete "${category?.name}"?`,
+      onConfirm: () => deleteMutation.mutate(undefined as any),
+    });
   };
 
-  if (isLoading || !category) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
+  if (isLoading) {
+    return <LoadingSkeleton />;
+  }
+
+  if (isError || !category) {
+    return <ErrorState onRetry={() => refetch()} />;
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="#007AFF" />
@@ -178,7 +183,7 @@ export default function EditCategoryScreen() {
 
       <CTAbutton
         title="Save Changes"
-        onPress={() => updateMutation.mutate()}
+        onPress={() => updateMutation.mutate(undefined as any)}
         backgroundcolor="#007AFF"
         textColor="#FFFFFF"
         buttonIcon="checkmark"
@@ -194,7 +199,8 @@ export default function EditCategoryScreen() {
         buttonColor="#FF3B30"
         marginVertical={12}
       />
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

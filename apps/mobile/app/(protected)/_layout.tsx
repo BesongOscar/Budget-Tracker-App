@@ -21,7 +21,7 @@ export default function ProtectedLayout() {
           name="(budgets)"
           options={{ title: "Budgets", headerShown: false }}
         />
-        <Tabs.Screen name="(Profile)" options={{ title: "Profile" }} />
+        <Tabs.Screen name="(Profile)" options={{ title: "Profile", headerShown: false }} />
       </Tabs>
     </>
   );

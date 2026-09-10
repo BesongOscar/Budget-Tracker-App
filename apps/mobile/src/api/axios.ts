@@ -2,9 +2,10 @@ import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
+import { API_BASE_URL } from '../constants/config';
 
 const api = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_BASE_URL,
+  baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -34,7 +35,7 @@ api.interceptors.response.use(
       try {
         const refreshToken = await SecureStore.getItemAsync('refreshToken');
         const res = await axios.post(
-          `${process.env.EXPO_PUBLIC_API_BASE_URL}/auth/refresh`,
+          `${API_BASE_URL}/auth/refresh`,
           { refreshToken }
         );
 

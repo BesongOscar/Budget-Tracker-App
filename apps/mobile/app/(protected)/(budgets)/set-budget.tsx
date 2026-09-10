@@ -9,9 +9,11 @@ import {
   FlatList,
   Modal,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { categoriesApi } from "@/src/api/categories.api";
 import { budgetsApi } from "@/src/api/budgets.api";
@@ -21,11 +23,14 @@ import {
   shiftPeriodMonth,
 } from "@/src/utils/month";
 import { formatCurrency } from "@/src/utils/formatCurrency";
+import { useCurrency } from "@/src/hooks/useCurrency";
+import { useOfflineMutation } from "@/src/hooks/useOfflineMutation";
 import CTAbutton from "@/src/Components/CTAbutton";
 
 export default function SetBudgetScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const code = useCurrency();
   const { id, month } = useLocalSearchParams<{ id?: string; month?: string }>();
 
   const targetMonth = month ?? getPeriodMonth();
@@ -80,8 +85,8 @@ export default function SetBudgetScreen() {
     ? summary.remainingToAllocate - (Number.isFinite(entered) ? entered : 0)
     : null;
 
-  const saveMutation = useMutation({
-    mutationFn: () =>
+  const saveMutation = useOfflineMutation<any, undefined>({
+    mutationFn: async () =>
       isEdit
         ? budgetsApi.update(id!, { allocatedAmount: entered })
         : budgetsApi.create({
@@ -89,6 +94,20 @@ export default function SetBudgetScreen() {
             allocatedAmount: entered,
             periodMonth: targetMonth,
           }),
+    op: () =>
+      isEdit
+        ? {
+            kind: "budget",
+            action: "update",
+            id,
+            payload: { allocatedAmount: entered },
+          }
+        : {
+            kind: "budget",
+            action: "create",
+            payload: { categoryId, allocatedAmount: entered, periodMonth: targetMonth },
+          },
+    invalidateKeys: [["budgets"], ["budget"]],
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["budgets"] });
       queryClient.invalidateQueries({ queryKey: ["budget"] });
@@ -101,12 +120,21 @@ export default function SetBudgetScreen() {
       ),
   });
 
-  const copyMutation = useMutation({
-    mutationFn: () =>
+  const copyMutation = useOfflineMutation<any, undefined>({
+    mutationFn: async () =>
       budgetsApi.copyPeriod({
         fromMonth: shiftPeriodMonth(targetMonth, -1),
         toMonth: targetMonth,
       }),
+    op: () => ({
+      kind: "budget",
+      action: "copy",
+      payload: {
+        fromMonth: shiftPeriodMonth(targetMonth, -1),
+        toMonth: targetMonth,
+      },
+    }),
+    invalidateKeys: [["budgets"]],
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["budgets"] });
       router.back();
@@ -137,7 +165,11 @@ export default function SetBudgetScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.periodLabel}>{formatPeriodMonth(targetMonth)}</Text>
 
         {!isEdit && (
@@ -185,14 +217,14 @@ export default function SetBudgetScreen() {
                 color: remainingAfter < 0 ? "#FF3B30" : "#34C759",
               }}
             >
-              {formatCurrency(remainingAfter)}
+              {formatCurrency(remainingAfter, code)}
             </Text>
           </Text>
         )}
 
         <CTAbutton
           title={isEdit ? "Save Changes" : "Save Budget"}
-          onPress={() => saveMutation.mutate()}
+          onPress={() => saveMutation.mutate(undefined as any)}
           backgroundcolor={canSubmit ? "#007AFF" : "#C7C7CC"}
           textColor="#FFFFFF"
           marginVertical={20}
@@ -202,7 +234,7 @@ export default function SetBudgetScreen() {
         {!isEdit && (
           <CTAbutton
             title="Copy last month's budgets"
-            onPress={() => copyMutation.mutate()}
+            onPress={() => copyMutation.mutate(undefined as any)}
             backgroundcolor="#FFFFFF"
             textColor="#007AFF"
             borderColor="#007AFF"
@@ -211,7 +243,8 @@ export default function SetBudgetScreen() {
             disabled={copyMutation.isPending}
           />
         )}
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       <Modal visible={showPicker} transparent animationType="slide">
         <TouchableOpacity

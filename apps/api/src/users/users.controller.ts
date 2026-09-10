@@ -1,7 +1,8 @@
-import { Body, Controller, Delete, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Get, Delete, Patch, Post } from "@nestjs/common";
 import { UsersService } from "./users.service";
 import { UpdatePushTokenDto } from "./dto/update-push-token.dto";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { UpdateProfileDto } from "./dto/update-profile.dto";
 
 @Controller("users")
 export class UsersController {
@@ -23,5 +24,18 @@ export class UsersController {
   @Post("me/push-token/test")
   sendTestPush(@CurrentUser("id") userId: string) {
     return this.usersService.sendTestPush(userId);
+  }
+
+  @Get("me")
+  getMe(@CurrentUser("id") userId: string) {
+    return this.usersService.getProfile(userId);
+  }
+
+  @Patch("me")
+  updateProfile(
+    @CurrentUser("id") userId: string,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return this.usersService.updateProfile(userId, dto);
   }
 }

@@ -797,6 +797,68 @@ Get the full income-first dashboard payload for a period. Returns income, alloca
 
 All user endpoints are scoped to the authenticated user.
 
+### GET `/users/me`
+
+Fetch the authenticated user's profile. Sensitive fields (e.g. `passwordHash`) are stripped from the response.
+
+**Auth:** JWT Required
+
+**Response (200):**
+
+```json
+{
+  "data": {
+    "id": "clx4h...",
+    "email": "user@example.com",
+    "fullName": "Jane Doe",
+    "currencyCode": "USD",
+    "expoPushToken": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+    "emailVerifiedAt": "2026-08-11T12:00:00.000Z",
+    "createdAt": "2026-08-11T12:00:00.000Z",
+    "updatedAt": "2026-08-11T12:00:00.000Z"
+  },
+  "meta": { "timestamp": "2026-09-10T12:00:00.000Z" }
+}
+```
+
+**Errors:**
+- `404 Not Found` — the user no longer exists
+
+### PATCH `/users/me`
+
+Partially update the authenticated user's profile. Only provided fields are updated; missing fields are ignored.
+
+**Auth:** JWT Required
+
+**Request Body:**
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `fullName` | string | No | Max 120 characters |
+| `currencyCode` | string | No | Must match `/^[A-Z]{3}$/` (3-letter ISO code) |
+
+**Response (200):**
+
+```json
+{
+  "data": {
+    "id": "clx4h...",
+    "email": "user@example.com",
+    "fullName": "Jane Doe",
+    "currencyCode": "USD",
+    "expoPushToken": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+    "emailVerifiedAt": "2026-08-11T12:00:00.000Z",
+    "createdAt": "2026-08-11T12:00:00.000Z",
+    "updatedAt": "2026-09-10T12:00:00.000Z"
+  },
+  "meta": { "timestamp": "2026-09-10T12:00:00.000Z" }
+}
+```
+
+**Errors:**
+- `400 Bad Request` — invalid `currencyCode` format or `fullName` too long
+- `404 Not Found` — the user no longer exists
+
 ### PATCH `/users/me/push-token`
 
 Register (or replace) the user's Expo push token so budget events can be delivered as push notifications.

@@ -5,28 +5,32 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { transactionsApi } from "@/src/api/transactions.api";
 import { formatCurrency } from "@/src/utils/formatCurrency";
+import { useCurrency } from "@/src/hooks/useCurrency";
 import {
   formatTransactionDate,
   formatFullDate,
   groupByDate,
 } from "@/src/utils/formatDate";
 import EmptyState from "@/src/Components/EmptyState";
+import LoadingSkeleton from "@/src/Components/LoadingSkeleton";
+import ErrorState from "@/src/Components/ErrorState";
 
 type Filter = "ALL" | "INCOME" | "EXPENSE";
 
 export default function TransactionListScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const code = useCurrency();
   const [filter, setFilter] = useState<Filter>("ALL");
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: [
       "transactions",
       { type: filter === "ALL" ? undefined : filter, limit: 50 },
@@ -76,7 +80,7 @@ export default function TransactionListScreen() {
           ]}
         >
           {item.type === "INCOME" ? "+" : "-"}
-          {formatCurrency(Number(item.amount))}
+          {formatCurrency(Number(item.amount), code)}
         </Text>
         <Text style={styles.transactionFullDate}>
           {formatFullDate(item.date)}
@@ -111,16 +115,21 @@ export default function TransactionListScreen() {
       </View>
 
       {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
-        </View>
+        <LoadingSkeleton rows={6} />
+      ) : isError && transactions.length === 0 ? (
+        <ErrorState message="Couldn't load your transactions." onRetry={() => refetch()} />
       ) : transactions.length === 0 ? (
         <EmptyState
           title="No transactions yet"
           message="Tap + to add your first transaction"
         />
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={isFetching} onRefresh={() => refetch()} tintColor="#007AFF" />
+          }
+        >
           {sections.map((section) => (
             <View key={section.title} style={styles.sectionGroup}>
               <Text style={styles.sectionHeader}>{section.title}</Text>

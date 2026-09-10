@@ -5,14 +5,16 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  Alert,
-  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { categoriesApi } from "@/src/api/categories.api";
 import EmptyState from "@/src/Components/EmptyState";
+import LoadingSkeleton from "@/src/Components/LoadingSkeleton";
+import ErrorState from "@/src/Components/ErrorState";
+import { confirmDelete } from "@/src/utils/confirmDelete";
+import { useOfflineMutation } from "@/src/hooks/useOfflineMutation";
 
 type Tab = "INCOME" | "EXPENSE";
 
@@ -21,7 +23,7 @@ export default function CategoryListScreen() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<Tab>("EXPENSE");
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["categories", activeTab],
     queryFn: () => categoriesApi.getAll(activeTab),
   });
@@ -29,8 +31,10 @@ export default function CategoryListScreen() {
   const raw = data?.data?.data;
   const categories = Array.isArray(raw) ? raw : [];
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => categoriesApi.remove(id),
+  const deleteMutation = useOfflineMutation<any, string>({
+    mutationFn: async (cid) => categoriesApi.remove(cid),
+    op: (cid) => ({ kind: "category", action: "delete", id: cid }),
+    invalidateKeys: [["categories"]],
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
     },
@@ -38,18 +42,11 @@ export default function CategoryListScreen() {
 
   const handleDelete = useCallback(
     (id: string, name: string) => {
-      Alert.alert(
-        "Delete Category",
-        `Are you sure you want to delete "${name}"?`,
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Delete",
-            style: "destructive",
-            onPress: () => deleteMutation.mutate(id),
-          },
-        ],
-      );
+      confirmDelete({
+        title: "Delete Category",
+        message: `Are you sure you want to delete "${name}"?`,
+        onConfirm: () => deleteMutation.mutate(id),
+      });
     },
     [deleteMutation],
   );
@@ -98,9 +95,9 @@ export default function CategoryListScreen() {
       </View>
 
       {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
-        </View>
+        <LoadingSkeleton />
+      ) : isError ? (
+        <ErrorState onRetry={() => refetch()} />
       ) : categories.length === 0 ? (
         <EmptyState
           title="No categories yet"

@@ -57,4 +57,33 @@ export class UsersService {
 
     return { message: "Test push sent" };
   }
+
+  private findUserProfile(userId: string) {
+  return this.prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, fullName: true, currencyCode: true },
+  });
+}
+
+private sanitize(user: any) {
+  const { passwordHash, ...rest } = user;
+  return rest;
+}
+
+async getProfile(userId: string) {
+  const user = await this.prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new NotFoundException("User not found");
+  return this.sanitize(user);
+}
+
+async updateProfile(userId: string, dto: { fullName?: string; currencyCode?: string }) {
+  const updated = await this.prisma.user.update({
+    where: { id: userId },
+    data: {
+      ...(dto.fullName !== undefined && { fullName: dto.fullName }),
+      ...(dto.currencyCode !== undefined && { currencyCode: dto.currencyCode }),
+    },
+  });
+  return this.sanitize(updated);
+}
 }

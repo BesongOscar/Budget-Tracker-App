@@ -4,26 +4,37 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   Alert,
   ActionSheetIOS,
   Platform,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { budgetsApi } from "@/src/api/budgets.api";
 import { transactionsApi } from "@/src/api/transactions.api";
 import { formatCurrency } from "@/src/utils/formatCurrency";
+import { useCurrency } from "@/src/hooks/useCurrency";
 import { formatPeriodMonth, getPeriodDateRange } from "@/src/utils/month";
 import { formatTransactionDate } from "@/src/utils/formatDate";
+import ErrorState from "@/src/Components/ErrorState";
+import LoadingSkeleton from "@/src/Components/LoadingSkeleton";
+import { confirmDelete } from "@/src/utils/confirmDelete";
+import { useOfflineMutation } from "@/src/hooks/useOfflineMutation";
+
+function progressColor(pct: number) {
+  if (pct >= 100) return "#FF3B30";
+  if (pct >= 70) return "#FF9500";
+  return "#34C759";
+}
 
 export default function BudgetDetailScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const code = useCurrency();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["budget", id],
     queryFn: () => budgetsApi.getOne(id),
   });
@@ -31,10 +42,10 @@ export default function BudgetDetailScreen() {
   const budget = data?.data?.data;
   const allocated = budget ? Number(budget.allocatedAmount) : 0;
   const spent = budget ? Number(budget.spentAmount) : 0;
-  const over = spent > allocated;
-  const remaining = allocated - spent;
   const pct =
     allocated > 0 ? Math.min(100, Math.round((spent / allocated) * 100)) : 0;
+  const remaining = allocated - spent;
+  const fillColor = progressColor(pct);
 
   const { from, to } = budget
     ? getPeriodDateRange(budget.periodMonth)
@@ -54,8 +65,10 @@ export default function BudgetDetailScreen() {
 
   const transactions: any[] = txData?.data?.data ?? [];
 
-  const removeMutation = useMutation({
-    mutationFn: () => budgetsApi.remove(id),
+  const removeMutation = useOfflineMutation<any, undefined>({
+    mutationFn: async () => budgetsApi.remove(id),
+    op: () => ({ kind: "budget", action: "delete", id }),
+    invalidateKeys: [["budgets"]],
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["budgets"] });
       router.back();
@@ -83,7 +96,11 @@ export default function BudgetDetailScreen() {
               params: { id },
             });
           } else if (buttonIndex === 1 && canDelete) {
-            removeMutation.mutate();
+            confirmDelete({
+              title: "Delete Budget",
+              message: `Are you sure you want to delete this ${budget?.category?.name} budget?`,
+              onConfirm: () => removeMutation.mutate(undefined as any),
+            });
           }
         },
       );
@@ -104,7 +121,12 @@ export default function BudgetDetailScreen() {
             ? {
                 text: "Delete budget",
                 style: "destructive",
-                onPress: () => removeMutation.mutate(),
+                onPress: () =>
+                  confirmDelete({
+                    title: "Delete Budget",
+                    message: `Are you sure you want to delete this ${budget?.category?.name} budget?`,
+                    onConfirm: () => removeMutation.mutate(undefined as any),
+                  }),
               }
             : null,
           { text: "Cancel", style: "cancel" },
@@ -113,10 +135,18 @@ export default function BudgetDetailScreen() {
     }
   };
 
-  if (isLoading || !budget) {
+  if (isLoading) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <LoadingSkeleton rows={5} />
+      </View>
+    );
+  }
+
+  if (isError || !budget) {
+    return (
+      <View style={styles.loading}>
+        <ErrorState message="Couldn't load this budget." onRetry={() => refetch()} />
       </View>
     );
   }
@@ -148,11 +178,9 @@ export default function BudgetDetailScreen() {
             {formatPeriodMonth(budget.periodMonth)}
           </Text>
 
-          <Text
-            style={[styles.heroAmount, { color: over ? "#FF3B30" : "#000" }]}
-          >
-            {formatCurrency(spent)}
-            <Text style={styles.heroOf}>/{formatCurrency(allocated)}</Text>
+          <Text style={[styles.heroAmount, { color: pct >= 100 ? "#FF3B30" : "#000" }]}>
+            {formatCurrency(spent, code)}
+            <Text style={styles.heroOf}>/{formatCurrency(allocated, code)}</Text>
           </Text>
 
           <Text style={styles.pctText}>{pct}% of budget used</Text>
@@ -163,7 +191,7 @@ export default function BudgetDetailScreen() {
                 styles.progressFill,
                 {
                   width: `${pct}%`,
-                  backgroundColor: over ? "#FF3B30" : "#007AFF",
+                  backgroundColor: fillColor,
                 },
               ]}
             />
@@ -175,15 +203,15 @@ export default function BudgetDetailScreen() {
           <View style={styles.statCol}>
             <Text style={styles.statLabel}>Spent</Text>
             <Text
-              style={[styles.statValue, { color: over ? "#FF3B30" : "#000" }]}
+              style={[styles.statValue, { color: pct >= 100 ? "#FF3B30" : "#000" }]}
             >
-              {formatCurrency(spent)}
+              {formatCurrency(spent, code)}
             </Text>
           </View>
           <View/>
           <View style={styles.statCol}>
             <Text style={styles.statLabel}>Budget</Text>
-            <Text style={styles.statValue}>{formatCurrency(allocated)}</Text>
+            <Text style={styles.statValue}>{formatCurrency(allocated, code)}</Text>
           </View>
           <View/>
           <View style={styles.statCol}>
@@ -194,7 +222,7 @@ export default function BudgetDetailScreen() {
                 { color: remaining >= 0 ? "#007AFF" : "#FF3B30" },
               ]}
             >
-              {formatCurrency(Math.abs(remaining))}
+              {formatCurrency(Math.abs(remaining), code)}
             </Text>
           </View>
         </View>
@@ -234,7 +262,7 @@ export default function BudgetDetailScreen() {
                   </View>
                 </View>
                 <Text style={styles.txAmount}>
-                  -{formatCurrency(Number(tx.amount))}
+                  -{formatCurrency(Number(tx.amount), code)}
                 </Text>
               </View>
             ))

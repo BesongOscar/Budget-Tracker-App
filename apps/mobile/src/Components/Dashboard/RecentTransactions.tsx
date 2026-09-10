@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from "react-native";
 import { formatCurrency } from "@/src/utils/formatCurrency";
+import { useCurrency } from "@/src/hooks/useCurrency";
 import { formatTransactionDate } from "@/src/utils/formatDate";
 
 interface Transaction {
@@ -19,6 +20,7 @@ export default function RecentTransactions({
 }: {
   transactions: Transaction[];
 }) {
+  const code = useCurrency();
   if (transactions.length === 0) return null;
 
   return (
@@ -53,7 +55,7 @@ export default function RecentTransactions({
                 ]}
               >
                 {isIncome ? "+" : "-"}
-                {formatCurrency(tx.amount)}
+                {formatCurrency(tx.amount, code)}
               </Text>
             </View>
           );

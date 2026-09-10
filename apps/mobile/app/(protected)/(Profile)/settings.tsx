@@ -1,9 +1,12 @@
-import { View, Text } from 'react-native';
+import React from 'react'
+import { View, Text } from 'react-native'
 
-export default function SettingsScreen() {
+const settings = () => {
   return (
     <View>
-      <Text>Settings</Text>
+      <Text>settings</Text>
     </View>
-  );
+  )
 }
+
+export default settings

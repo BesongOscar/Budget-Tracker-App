@@ -3,14 +3,17 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { dashboardApi } from "@/src/api/dashboard.api";
 import { getPeriodMonth } from "@/src/utils/month";
 import { formatCurrency } from "@/src/utils/formatCurrency";
+import { useCurrency } from "@/src/hooks/useCurrency";
 import AlertCard from "@/src/Components/Insights/AlertCard";
+import LoadingSkeleton from "@/src/Components/LoadingSkeleton";
+import ErrorState from "@/src/Components/ErrorState";
 
 interface Alert {
   id: string;
@@ -21,7 +24,7 @@ interface Alert {
   amount: string;
 }
 
-function deriveAlerts(dashboard: any): Alert[] {
+function deriveAlerts(dashboard: any, code: string): Alert[] {
   const alerts: Alert[] = [];
 
   // 1. Over-allocation alert
@@ -34,7 +37,7 @@ function deriveAlerts(dashboard: any): Alert[] {
       title: "Over-Allocation",
       description:
         "Your total allocated budgets exceed your income this period.",
-      amount: formatCurrency(overAmount),
+      amount: formatCurrency(overAmount, code),
     });
   }
 
@@ -52,7 +55,7 @@ function deriveAlerts(dashboard: any): Alert[] {
         icon: "alert-circle",
         title: `${budget.icon} ${budget.categoryName} — Over Budget`,
         description: `You've exceeded your budget for ${budget.categoryName}.`,
-        amount: formatCurrency(overAmount),
+        amount: formatCurrency(overAmount, code),
       });
     } else if (allocated > 0 && budget.percentUsed >= 80) {
       // Near 80% threshold
@@ -62,7 +65,7 @@ function deriveAlerts(dashboard: any): Alert[] {
         icon: "alert",
         title: `${budget.icon} ${budget.categoryName} — 80% Used`,
         description: `You've used ${budget.percentUsed}% of your ${budget.categoryName} budget.`,
-        amount: `${formatCurrency(spent)} / ${formatCurrency(allocated)}`,
+        amount: `${formatCurrency(spent, code)} / ${formatCurrency(allocated, code)}`,
       });
     }
   }
@@ -72,14 +75,15 @@ function deriveAlerts(dashboard: any): Alert[] {
 
 export default function InsightsScreen() {
   const month = getPeriodMonth();
+  const code = useCurrency();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["dashboard", month],
     queryFn: () => dashboardApi.getDashboard(month),
   });
 
   const dashboard = data?.data?.data;
-  const alerts = dashboard ? deriveAlerts(dashboard) : [];
+  const alerts = dashboard ? deriveAlerts(dashboard, code) : [];
 
   const overBudgetAlerts = alerts.filter((a) => a.id.startsWith("over-budget"));
   const thresholdAlerts = alerts.filter((a) => a.id.startsWith("threshold-80"));
@@ -88,11 +92,16 @@ export default function InsightsScreen() {
   return (
     <View style={styles.container}>
       {isLoading ? (
-        <View style={styles.loading}>
-          <ActivityIndicator size="large" color="#007AFF" />
-        </View>
+        <LoadingSkeleton rows={4} />
+      ) : isError ? (
+        <ErrorState message="Couldn't load your insights." onRetry={() => refetch()} />
       ) : (
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl refreshing={isFetching} onRefresh={() => refetch()} tintColor="#007AFF" />
+          }
+        >
           <Text style={styles.header}>Insights</Text>
 
           {alerts.length === 0 ? (

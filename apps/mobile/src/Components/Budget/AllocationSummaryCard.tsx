@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from "react-native";
 import { formatCurrency } from "@/src/utils/formatCurrency";
+import { useCurrency } from "@/src/hooks/useCurrency";
 import type { BudgetSummary } from "@/src/types/budget";
 
 export default function AllocationSummaryCard({
@@ -7,6 +8,7 @@ export default function AllocationSummaryCard({
 }: {
   summary: BudgetSummary;
 }) {
+  const code = useCurrency();
   const { income, allocated, remainingToAllocate, isOverAllocated } = summary;
   const usedPct = income > 0 ? Math.min(100, (allocated / income) * 100) : 0;
 
@@ -14,11 +16,11 @@ export default function AllocationSummaryCard({
     <View style={styles.card}>
       <View style={styles.row}>
         <Text style={styles.label}>Income</Text>
-        <Text style={styles.value}>{formatCurrency(income)}</Text>
+        <Text style={styles.value}>{formatCurrency(income, code)}</Text>
       </View>
       <View style={styles.row}>
         <Text style={styles.label}>Allocated</Text>
-        <Text style={styles.value}>{formatCurrency(allocated)}</Text>
+        <Text style={styles.value}>{formatCurrency(allocated, code)}</Text>
       </View>
       <View style={styles.row}>
         <Text style={styles.label}>Remaining to allocate</Text>
@@ -29,8 +31,8 @@ export default function AllocationSummaryCard({
           ]}
         >
           {isOverAllocated
-            ? formatCurrency(-remainingToAllocate)
-            : formatCurrency(remainingToAllocate)}
+            ? formatCurrency(-remainingToAllocate, code)
+            : formatCurrency(remainingToAllocate, code)}
         </Text>
       </View>
       <View style={styles.progressTrack}>
