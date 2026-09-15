@@ -211,7 +211,7 @@ Production environment variables:
 ```bash
 cd apps/mobile
 # apps/mobile/.env:
-#   EXPO_PUBLIC_API_BASE_URL=https://budget-tracker-api.onrender.com/api/v1
+#   EXPO_PUBLIC_API_BASE_URL=https://budget-tracker-api-7f17.onrender.com/api/v1
 npx eas-cli login
 npx eas-cli build --profile production --platform all
 ```
@@ -220,13 +220,13 @@ npx eas-cli build --profile production --platform all
 
 ### 4. Production verification
 
-- Push notifications: run `scripts/smoke-sprint3.ps1` with `-BaseUrl https://budget-tracker-api.onrender.com/api/v1` and confirm all three conditions on the device (see `docs/QA_PUSH_PRODUCTION.md`).
+- Push notifications: run `scripts/smoke-sprint3.ps1` with `-BaseUrl https://budget-tracker-api-7f17.onrender.com/api/v1` and confirm all three conditions on the device (see `docs/QA_PUSH_PRODUCTION.md`).
 - Manual QA: `docs/QA_CHECKLIST.md`.
 - Performance: `docs/QA_LOW_END_DEVICE.md`. Database index check: `psql "$DATABASE_URL" -f scripts/verify-indexes.sql`.
 
 ## Current Status
 
-**Sprint 6 in progress** — Automated QA delivered: 26 unit tests + 13 e2e integration tests (transactions CRUD/type enforcement/budget recalc, budgets income-category rejection & copy-period, login rate limiting, dashboard figures), index verification script, React Query cache audit, `render.yaml` blueprint, EAS build steps, README + DECISIONS updates. Remaining (account/device-gated): Neon provisioning, Render service creation + secrets, EAS production build, physical-device QA, and production push verification.
+**Sprint 6 in progress** — Automated QA delivered: 26 unit tests + 13 e2e integration tests, index verification script, React Query cache audit, `render.yaml` blueprint, EAS builds complete, README + DECISIONS updates. Production API live on Render (`budget-tracker-api-7f17.onrender.com`). Remaining (device-gated): physical-device QA and production push verification.
 
 **Sprint 5 complete** — Backend profile endpoints (`GET/PATCH /users/me`), offline-first mobile (NetInfo awareness, offline banner, persisted write queue with FIFO replay via `useOfflineMutation`/`useOfflineSync`), reactive currency (`currencyStore` + `useCurrency`), consolidated profile/settings screens, and full polish (loading skeletons, error states, pull-to-refresh, delete confirmations, KeyboardAvoidingView, budget progress colors).
 

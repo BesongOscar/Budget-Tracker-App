@@ -1,7 +1,7 @@
 # Sprint 6 — QA, Performance, and EAS Deployment
 
 **Period:** September 2026
-**Status:** In progress — backend test suites green (26 unit + 13 e2e), performance verification and deployment artifacts in place. Device QA and account-gated deployment (Neon / Render / EAS) pending completion on physical devices.
+**Status:** In progress — backend test suites green (26 unit + 13 e2e), performance verification and deployment artifacts in place. Production API live on Render. Device QA and push verification pending physical devices.
 
 ---
 
@@ -75,8 +75,8 @@ Sprint 6 makes the app production-ready: a full automated test suite (unit + e2e
   $env:DATABASE_URL="postgresql://<user>:<password>@<host>.neon.tech/budgettracker?sslmode=require"
   npx prisma migrate deploy
   ```
-- **Render (6.12):** `render.yaml` blueprint at repo root — `budget-tracker-api` web service (`rootDir: apps/api`, `healthCheckPath: /api/v1/health`, secrets via `sync: false`). Connect the repo in the Render dashboard and fill `DATABASE_URL`, `JWT_*`, and `SMTP_*`.
-- **Mobile prod URL (6.13):** set `EXPO_PUBLIC_API_BASE_URL=https://budget-tracker-api.onrender.com/api/v1` in `apps/mobile/.env` (or as an EAS environment variable) **before** building. The value is inlined at build time.
+- **Render (6.12):** `render.yaml` blueprint at repo root — `budget-tracker-api` web service (`rootDir: apps/api`, `healthCheckPath: /api/v1/health`, secrets via `sync: false`). Deployed at `https://budget-tracker-api-7f17.onrender.com`.
+- **Mobile prod URL (6.13):** set `EXPO_PUBLIC_API_BASE_URL=https://budget-tracker-api-7f17.onrender.com/api/v1` in `apps/mobile/.env` (or as an EAS environment variable) **before** building. The value is inlined at build time.
 - **EAS production build (6.14):**
   ```powershell
   npx eas-cli login
@@ -109,9 +109,13 @@ Sprint 6 makes the app production-ready: a full automated test suite (unit + e2e
 - `npm run test:e2e` → 13/13 green.
 - Lint: `npm run lint` still fails on the pre-existing ESLint 9 flat-config gap (no `eslint.config.js`) — unchanged from Sprint 3, out of scope for this sprint's tasks.
 
-## What's NOT Done (account-gated)
+## What's NOT Done (device-gated)
 
-- **Neon provisioning + production `prisma migrate deploy`** — needs the user's Neon project/connection string.
-- **Render service creation + secret env vars** — needs the user's Render account; blueprint is ready.
-- **EAS production build** — needs `eas login` and the user's Expo account.
-- **Physical-device QA runs (6.6, 6.8) and production push verification (6.15)** — needs real devices and the deployed endpoints.
+- **Physical-device QA runs (6.6, 6.8) and production push verification (6.15)** — needs real devices and the installed APK.
+- **Render free tier caveat:** the service sleeps after ~3 min idle; cold starts take 30-60s. Consider upgrading to a paid tier for production use.
+
+## What's Done
+
+- **Neon (6.11):** provisioned project `morning-dawn-42516420`, all 5 migrations applied to production DB, `neon.ts` branch policy deployed.
+- **Render (6.12):** `budget-tracker-api-7f17.onrender.com` live, health check passing, all routes mapped.
+- **EAS (6.14):** production AAB (`04bfe2e8`) and preview APK (`95734acb`) built, `EXPO_PUBLIC_API_BASE_URL` set on all environments to `https://budget-tracker-api-7f17.onrender.com/api/v1`.

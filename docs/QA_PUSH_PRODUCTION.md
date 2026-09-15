@@ -14,7 +14,7 @@ Verify all **3 push conditions** end-to-end in the production environment: budge
 From the repo root, against production:
 
 ```powershell
-.\scripts\smoke-sprint3.ps1 -Email "you@example.com" -Password "YourPass1" -BaseUrl "https://budget-tracker-api.onrender.com/api/v1"
+.\scripts\smoke-sprint3.ps1 -Email "you@example.com" -Password "YourPass1" -BaseUrl "https://budget-tracker-api-7f17.onrender.com/api/v1"
 ```
 
 Watch the device while the script runs. It logs in, seeds income, creates a budget at 60% of income, then crosses 80% and 100% with fresh expenses. The script prints when each push *should* fire.
