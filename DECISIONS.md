@@ -42,3 +42,15 @@
 28. **Settings built into the `(Profile)` group** — a consolidated profile screen with inline settings rows plus a `settings.tsx` route reachable via the header gear. The shared `Row`/`pickCurrency`/`toggleNotifications` helpers are intentionally duplicated between the two files rather than extracted into shared components.
 29. **Notification toggle stays online-only** — push delivery requires the network, so the test-push setting remains a direct API call instead of joining the offline queue.
 30. **Queue replay stops on first failure** — the outbox replays FIFO and halts on any error so ops can never be applied out of order; each entry is removed only after its API call succeeds.
+
+---
+
+## Phase 3 v3 completion (Sprint 6)
+
+The following v3 income-first architecture decisions are fully implemented and documented above: income-first budgeting (#6), BudgetStatus lifecycle (#7), category type enforcement (#8), over-allocation warn-not-block (#9), server-side status sync (#13), notifications-after-commit (#14), Expo push service (#15), once-per-period over-allocation warning (#16), crossing-only threshold events (#17), DRAFT/ARCHIVED-only delete rule (#18), and copy-period upsert semantics (#19).
+
+### Sprint 6 additions
+
+31. **Dedicated test database (`budgettracker_test`)** — integration tests run against a separate local PostgreSQL database migrated with `prisma migrate deploy`, isolated from the dev database. e2e suites run serially (`maxWorkers: 1`) because they share that single database.
+32. **Render blueprint for production API** — `render.yaml` declares the API web service (`rootDir: apps/api`, `healthCheckPath: /api/v1/health`). Secrets (`DATABASE_URL`, `JWT_*`, `SMTP_*`) are `sync: false` so production credentials are never committed.
+33. **Env-driven throttle configuration** — `THROTTLE_LIMIT`/`THROTTLE_TTL` are read from environment (defaults 5/60000) so automated suites can raise the limit while production keeps 5 req/min. This also fixed an inert rate limiter: `ThrottlerGuard`, previously never registered, is now a global `APP_GUARD` alongside `JwtAuthGuard`.
