@@ -1,0 +1,15 @@
+# EAS Build archive exclusions (repo-root; eas-cli only honors ignore files here).
+# Generated native projects/build artifacts are regenerated server-side (prebuild + npm install).
+node_modules/
+dist/
+.env
+android/
+ios/
+.expo/
+web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.tsbuildinfo
