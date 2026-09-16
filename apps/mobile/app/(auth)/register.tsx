@@ -33,7 +33,8 @@ const schema = Yup.object().shape({
 });
 
 export default function RegisterScreen() {
-  const { register, confirmAuth, verifyEmail, resendVerification, isLoading } = useAuth();
+  const { register, confirmAuth, verifyEmail, resendVerification, isLoading } =
+    useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [currentStep, setCurrentStep] = useState(0);
@@ -48,7 +49,14 @@ export default function RegisterScreen() {
   } | null>(null);
 
   // Verification code state
-  const [verificationCode, setVerificationCode] = useState(["", "", "", "", "", ""]);
+  const [verificationCode, setVerificationCode] = useState([
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+  ]);
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -126,8 +134,7 @@ export default function RegisterScreen() {
       await verifyEmail(pendingAuth!.user.email, code);
       handleVerifyNext();
     } catch (e: any) {
-      const msg =
-        e?.response?.data?.message || "Invalid or expired code";
+      const msg = e?.response?.data?.message || "Invalid or expired code";
       setVerifyError(typeof msg === "string" ? msg : "Invalid or expired code");
     } finally {
       setIsVerifying(false);
@@ -156,7 +163,10 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAwareScrollView
-      style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
+      style={[
+        styles.container,
+        { paddingTop: insets.top, paddingBottom: insets.bottom },
+      ]}
       contentContainerStyle={{ paddingBottom: insets.bottom }}
       keyboardShouldPersistTaps="handled"
       enableOnAndroid
@@ -348,7 +358,7 @@ export default function RegisterScreen() {
 
             <View style={styles.resendContainer}>
               <Text style={{ color: "#666", fontSize: 13 }}>
-                Didn't receive the code?{" "}
+                Didn’t receive the code?{" "}
               </Text>
               {resendCooldown > 0 ? (
                 <Text style={{ color: "#999", fontSize: 13 }}>
@@ -383,8 +393,8 @@ export default function RegisterScreen() {
           marginVertical: 5,
         }}
       >
-        <OAuthButton title="Continue with Google" buttonWidth={200} />
-        <OAuthButton title="Continue with Facebook" buttonWidth={200} />
+        <OAuthButton title="Continue with Google" buttonWidth={"auto"} />
+        <OAuthButton title="Continue with Facebook" buttonWidth={"auto"} />
       </View>
 
       <View style={styles.linkContainer}>
@@ -466,19 +476,12 @@ const styles = StyleSheet.create({
   },
   formCard: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 10,
-    marginVertical: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    marginBottom: 5,
   },
   formContent: {
     paddingTop: 5,
   },
-input: {
+  input: {
     borderWidth: 1,
     borderColor: "#D1D5DB",
     borderRadius: 8,
@@ -505,7 +508,7 @@ input: {
     height: 1,
     backgroundColor: "#ccc",
     width: "34%",
-    borderWidth: 1,
+    borderWidth: 0.5,
   },
   seperatorText: {
     color: "#666",

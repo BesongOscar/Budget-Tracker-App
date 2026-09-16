@@ -12,7 +12,7 @@ export default function EndOfPeriodPrompt({
     <View style={styles.card}>
       <Text style={styles.title}>Start planning this month</Text>
       <Text style={styles.message}>
-        Copy last month's budgets or set new ones for this period.
+        Copy last month’s budgets or set new ones for this period.
       </Text>
       <CTAbutton
         title="Copy last month's budgets"

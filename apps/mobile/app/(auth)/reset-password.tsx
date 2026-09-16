@@ -177,7 +177,7 @@ export default function ResetPasswordScreen() {
 
         <View style={styles.resendContainer}>
           <Text style={{ color: "#666", fontSize: 13 }}>
-            Didn't receive the code?{" "}
+            Didn’t receive the code?{" "}
           </Text>
           {resendCooldown > 0 ? (
             <Text style={{ color: "#999", fontSize: 13 }}>

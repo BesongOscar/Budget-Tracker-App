@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "center",
-    paddingVertical: 20,
+    paddingVertical: 15,
     paddingHorizontal: 10,
   },
   stepWrapper: {

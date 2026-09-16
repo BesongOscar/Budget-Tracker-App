@@ -75,7 +75,7 @@ export default function DashboardScreen() {
               {greeting}, {firstName} 👋
             </Text>
             <Text style={styles.greetingSub}>
-              Here's your financial overview
+              Here’s your financial overview
             </Text>
             {isOffline && lastUpdated && (
               <Text style={styles.offlineStamp}>

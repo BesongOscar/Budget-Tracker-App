@@ -101,7 +101,7 @@ export default function LoginScreen() {
               />
             </View>
             {touched.email && errors.email && (
-              <Text style={[styles.error, { marginBottom: 5 }]}>
+              <Text style={[styles.error, { marginBottom: 8 }]}>
                 {errors.email}
               </Text>
             )}
@@ -142,7 +142,7 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </View>
             {touched.password && errors.password && (
-              <Text style={[styles.error, { marginBottom: 5 }]}>
+              <Text style={[styles.error, { marginBottom: 8 }]}>
                 {errors.password}
               </Text>
             )}
@@ -174,8 +174,8 @@ export default function LoginScreen() {
                 marginVertical: 10,
               }}
             >
-              <OAuthButton title="Continue with Google" buttonWidth={200} />
-              <OAuthButton title="Continue with Facebook" buttonWidth={200} />
+              <OAuthButton title="Continue with Google" buttonWidth={"auto"} />
+              <OAuthButton title="Continue with Facebook" buttonWidth={"auto"} />
             </View>
 
             <View style={styles.linkContainer}>
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#ccc",
     width: "34%",
-    borderWidth: 1,
+    borderWidth: 0.5,
   },
   seperatorText: {
     color: "#666",

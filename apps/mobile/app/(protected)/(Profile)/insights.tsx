@@ -109,7 +109,7 @@ export default function InsightsScreen() {
               <Ionicons name="checkmark-circle" size={56} color="#34C759" />
               <Text style={styles.emptyTitle}>All Clear</Text>
               <Text style={styles.emptyText}>
-                No alerts — you're on track this month.
+                No alerts — you’re on track this month.
               </Text>
             </View>
           ) : (

@@ -82,6 +82,30 @@ export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const progress = useSharedValue(0);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] =
+    useState<boolean | null>(null);
+
+  // Read the persisted flag once on mount. `null` = still resolving.
+  useEffect(() => {
+    let mounted = true;
+    AsyncStorage.getItem(ONBOARDING_KEY)
+      .then((value) => {
+        if (mounted) setHasCompletedOnboarding(value === "true");
+      })
+      .catch(() => {
+        if (mounted) setHasCompletedOnboarding(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Returning users skip the carousel and go straight to login.
+  useEffect(() => {
+    if (hasCompletedOnboarding === true) {
+      router.replace("/(auth)/login");
+    }
+  }, [hasCompletedOnboarding]);
 
   const goToNext = useCallback(() => {
     setActiveIndex((prev) => {
@@ -97,10 +121,13 @@ export default function OnboardingScreen() {
     router.replace("/(auth)/register");
   };
 
+  const skip = () => {
+    cancelAnimation(progress);
+    finish();
+  };
+
   useEffect(() => {
     progress.value = 0;
-
-    if (activeIndex === slides.length - 0) return;
 
     progress.value = withTiming(
       1,
@@ -136,10 +163,18 @@ export default function OnboardingScreen() {
     }
   };
 
+  if (hasCompletedOnboarding === null) {
+    return <View style={styles.loadingContainer} />;
+  }
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <TouchableOpacity onPress={handleBack} style={styles.backbutton}>
         <Ionicons name="chevron-back" color={"#007AFF"} size={25} />
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={skip} style={styles.skipButton}>
+        <Text style={styles.skipText}>Skip</Text>
       </TouchableOpacity>
 
       <View style={styles.slideContainer}>
@@ -182,6 +217,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 5,
   },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+  },
   backbutton: {
     height: 40,
     width: 40,
@@ -191,6 +230,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginLeft: 10,
     borderRadius: "50%",
+  },
+  skipButton: {
+    position: "absolute",
+    right: 16,
+    top: 44,
+    padding: 10,
+  },
+  skipText: {
+    color: "#007AFF",
+    fontSize: 15,
+    fontWeight: "600",
   },
   slideContainer: {
     flex: 1,
