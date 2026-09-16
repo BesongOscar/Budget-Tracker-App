@@ -37,6 +37,7 @@ export default function BudgetProgressBars({ items }: { items: BudgetItem[] }) {
               key={item.categoryId}
               style={[styles.row, idx < items.length - 1 && styles.rowBorder]}
             >
+              {/* Left Column */}
               <View style={styles.left}>
                 <View
                   style={[
@@ -50,37 +51,42 @@ export default function BudgetProgressBars({ items }: { items: BudgetItem[] }) {
                   <Text style={styles.name} numberOfLines={1}>
                     {item.categoryName}
                   </Text>
-                  <Text style={styles.amounts}>
-                    <Text
-                      style={{
-                        color: fillColor,
-                        fontWeight: "600",
-                      }}
-                    >
-                      {formatCurrency(item.spent, code)}
-                    </Text>
-                    {" / "}
-                    <Text style={styles.allocated}>
-                      {formatCurrency(item.allocated, code)}
-                    </Text>
-                  </Text>
+                  <View style={styles.progressTrack}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        {
+                          width: `${pct}%`,
+                          backgroundColor: fillColor,
+                        },
+                      ]}
+                    />
+                  </View>
                 </View>
               </View>
 
+              {/* Right Column */}
               <View style={styles.right}>
-                <View style={styles.progressTrack}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        width: `${pct}%`,
-                        backgroundColor: fillColor,
-                      },
-                    ]}
-                  />
-                </View>
+                <Text style={styles.amounts}>
+                  <Text
+                    style={{
+                      color: fillColor,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {formatCurrency(item.spent, code)}
+                  </Text>
+                  {" / "}
+                  <Text style={styles.allocated}>
+                    {formatCurrency(item.allocated, code)}
+                  </Text>
+                </Text>
+
                 <Text
-                  style={[styles.pct, { color: pct >= 100 ? "#FF3B30" : "#8E8E93" }]}
+                  style={[
+                    styles.pct,
+                    { color: pct >= 100 ? "#FF3B30" : "#8E8E93" },
+                  ]}
                 >
                   {pct}%
                 </Text>
@@ -103,7 +109,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#000",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   card: {
     backgroundColor: "#fff",
@@ -129,8 +135,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   iconCircle: {
-    width: 32,
-    height: 32,
+    width: 35,
+    height: 35,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
@@ -138,9 +144,10 @@ const styles = StyleSheet.create({
   icon: { fontSize: 16 },
   textCol: {
     flex: 1,
+    gap: 10,
   },
   name: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "500",
     color: "#000",
   },
@@ -158,7 +165,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   progressTrack: {
-    width: 80,
+    width: "150%",
     height: 4,
     borderRadius: 2,
     backgroundColor: "#E5E5EA",

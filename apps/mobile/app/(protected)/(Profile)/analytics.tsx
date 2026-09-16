@@ -25,7 +25,11 @@ export default function AnalyticsScreen() {
   const code = useCurrency();
   const [periodMonth, setPeriodMonth] = useState(getPeriodMonth());
 
-  const { data: byCategoryData, isLoading: loadingCategory, isError: byCategoryIsError } = useQuery({
+  const {
+    data: byCategoryData,
+    isLoading: loadingCategory,
+    isError: byCategoryIsError,
+  } = useQuery({
     queryKey: ["analytics", "by-category", periodMonth],
     queryFn: () => analyticsApi.getByCategory(periodMonth),
   });
@@ -34,9 +38,18 @@ export default function AnalyticsScreen() {
     queryKey: ["analytics", "trend", 6],
     queryFn: () => analyticsApi.getTrend(6),
   });
-  const { data: trendData, isLoading: loadingTrend, isError: trendIsError, refetch: refetchTrend } = trendResult;
+  const {
+    data: trendData,
+    isLoading: loadingTrend,
+    isError: trendIsError,
+    refetch: refetchTrend,
+  } = trendResult;
 
-  const { data: transactionsData, isError: dailyIsError, refetch: refetchDaily } = useQuery({
+  const {
+    data: transactionsData,
+    isError: dailyIsError,
+    refetch: refetchDaily,
+  } = useQuery({
     queryKey: ["analytics", "daily", periodMonth],
     queryFn: () => {
       const { from, to } = getPeriodDateRange(periodMonth);
@@ -106,10 +119,18 @@ export default function AnalyticsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={24} color="#007AFF" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Analytics</Text>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 20,
+          }}
+        >
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={24} color="#007AFF" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Analytics</Text>
+        </View>
         <PeriodPicker periodMonth={periodMonth} onChange={setPeriodMonth} />
       </View>
 
@@ -121,7 +142,11 @@ export default function AnalyticsScreen() {
         <ScrollView
           contentContainerStyle={styles.content}
           refreshControl={
-            <RefreshControl refreshing={isRefreshing} onRefresh={refetch} tintColor="#007AFF" />
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={refetch}
+              tintColor="#007AFF"
+            />
           }
         >
           {/* Summary Card */}
@@ -243,7 +268,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 60,
     paddingHorizontal: 10,
-    paddingBottom: 12,
+    paddingBottom: 10,
     backgroundColor: "#fff",
   },
   backButton: {

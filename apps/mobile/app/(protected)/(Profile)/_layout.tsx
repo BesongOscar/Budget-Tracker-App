@@ -19,7 +19,7 @@ const renderHeaderRight = () => <SettingsButton />;
 
 const indexOptions = {
   title: "Profile",
-  headerTitleStyle: { fontSize: 25, fontWeight: "bold" as const },
+  headerTitleStyle: { fontSize: 27, fontWeight: "bold" as const },
   headerShadowVisible: false,
   headerRight: renderHeaderRight,
 };
@@ -37,6 +37,7 @@ export default function ProfileLayout() {
       />
       <Stack.Screen name="insights" options={{ title: "Insights" }} />
       <Stack.Screen name="category/[id]" options={{ title: "Edit Category" }} />
+      <Stack.Screen name="analytics" options={{ title: "Analytics", headerShown: false }} />
     </Stack>
   );
 }

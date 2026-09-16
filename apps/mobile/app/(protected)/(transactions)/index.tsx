@@ -21,6 +21,7 @@ import {
 import EmptyState from "@/src/Components/EmptyState";
 import LoadingSkeleton from "@/src/Components/LoadingSkeleton";
 import ErrorState from "@/src/Components/ErrorState";
+import { Ionicons } from "@expo/vector-icons";
 
 type Filter = "ALL" | "INCOME" | "EXPENSE";
 
@@ -91,8 +92,23 @@ export default function TransactionListScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Transactions</Text>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 20,
+          }}
+        >
+          <TouchableOpacity onPress={() => {}}>
+            <Ionicons name="funnel-outline" size={24} color="#000" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => {}}>
+            <Ionicons name="search" size={24} color="#000" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.filterRow}>
@@ -117,7 +133,10 @@ export default function TransactionListScreen() {
       {isLoading ? (
         <LoadingSkeleton rows={6} />
       ) : isError && transactions.length === 0 ? (
-        <ErrorState message="Couldn't load your transactions." onRetry={() => refetch()} />
+        <ErrorState
+          message="Couldn't load your transactions."
+          onRetry={() => refetch()}
+        />
       ) : transactions.length === 0 ? (
         <EmptyState
           title="No transactions yet"
@@ -127,7 +146,11 @@ export default function TransactionListScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           refreshControl={
-            <RefreshControl refreshing={isFetching} onRefresh={() => refetch()} tintColor="#007AFF" />
+            <RefreshControl
+              refreshing={isFetching}
+              onRefresh={() => refetch()}
+              tintColor="#007AFF"
+            />
           }
         >
           {sections.map((section) => (
@@ -147,11 +170,14 @@ export default function TransactionListScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFFFFF" },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingBottom: 12,
     backgroundColor: "#FFFFFF",
   },
-  title: { fontSize: 28, fontWeight: "700", color: "#000" },
+  title: { fontSize: 27, fontWeight: "700", color: "#000" },
   filterRow: {
     flexDirection: "row",
     paddingHorizontal: 20,

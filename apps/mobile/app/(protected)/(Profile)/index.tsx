@@ -233,6 +233,12 @@ export default function ProfileScreen() {
             }}
           >
             <Row
+            icon="bar-chart-outline"
+            title="Analytics"
+            value=""
+            onPress={() => router.push("/(protected)/(Profile)/analytics")}
+            />
+            <Row
               icon="cash-outline"
               title="Currency"
               value={currency}

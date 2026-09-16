@@ -56,7 +56,7 @@ export default function DashboardScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {isLoading && !dashboard ? (
         <LoadingSkeleton rows={5} />
-      ) : (isError && !dashboard) ? (
+      ) : isError && !dashboard ? (
         <ErrorState
           message="Couldn't load your dashboard."
           onRetry={() => refetch()}
@@ -67,7 +67,11 @@ export default function DashboardScreen() {
         <ScrollView
           contentContainerStyle={styles.content}
           refreshControl={
-            <RefreshControl refreshing={isFetching} onRefresh={() => refetch()} tintColor="#007AFF" />
+            <RefreshControl
+              refreshing={isFetching}
+              onRefresh={() => refetch()}
+              tintColor="#007AFF"
+            />
           }
         >
           <View style={styles.greeting}>
@@ -90,20 +94,6 @@ export default function DashboardScreen() {
             allocated={dashboard.allocated}
             spent={dashboard.spent}
           />
-
-          <TouchableOpacity
-            style={styles.link}
-            onPress={() => router.push("/(protected)/(home)/analytics")}
-          >
-            <Ionicons name="bar-chart-outline" size={24} color="#007AFF" />
-            <Text style={styles.linkText}>View Analytics</Text>
-            <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
-          </TouchableOpacity>
-
-          {/* <RemainingIndicator
-            remainingToAllocate={dashboard.remainingToAllocate}
-            isOverAllocated={dashboard.isOverAllocated}
-          /> */}
 
           <BudgetProgressBars items={dashboard.budgetProgress} />
 
@@ -154,10 +144,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5E5EA",
   },
-  linkText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#007AFF",
-  },
+  // linkText: {
+  //   flex: 1,
+  //   fontSize: 16,
+  //   fontWeight: "500",
+  //   color: "#007AFF",
+  // },
 });

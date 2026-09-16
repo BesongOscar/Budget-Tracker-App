@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#000",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   card: {
     backgroundColor: "#fff",
@@ -95,8 +95,8 @@ const styles = StyleSheet.create({
     borderBottomColor: "#E5E5EA",
   },
   iconCircle: {
-    width: 36,
-    height: 36,
+    width: 35,
+    height: 35,
     borderRadius: 10,
     backgroundColor: "#F2F2F7",
     alignItems: "center",
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   name: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "500",
     color: "#000",
   },

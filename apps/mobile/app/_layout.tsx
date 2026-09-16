@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Stack, useSegments, useRouter } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { useAuthStore } from "@/src/store/authStore";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { queryClient } from "@/src/utils/queryClient";
@@ -8,11 +9,15 @@ import { StatusBar } from "expo-status-bar";
 import { ThemeProvider, DefaultTheme } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { usePushNotifications } from "@/src/hooks/usePushNotifications";
+import { useSessionRestore } from "@/src/hooks/useSessionRestore";
 import { dashboardApi } from "@/src/api/dashboard.api";
 import { getPeriodMonth } from "@/src/utils/month";
 import { View } from "react-native";
 import OfflineBanner from "@/src/Components/OfflineBanner";
 import { useOfflineSync } from "@/src/hooks/useOfflineSync";
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
+const SPLASH_BG = "#FFF";
 
 if (__DEV__) {
   const origError = console.error;
@@ -27,17 +32,19 @@ export default function RootLayout() {
   const segments = useSegments();
   const router = useRouter();
   usePushNotifications();
-  // ASSUMPTION: authStore may expose `isHydrated` when using persisted state.
-  // If that property is not available, we assume hydration has completed.
+  const { isReady } = useSessionRestore();
 
   const { isAuthenticated } = useAuthStore();
-  const isHydrated = true;
+
+  useEffect(() => {
+    if (isReady) SplashScreen.hideAsync().catch(() => {});
+  }, [isReady]);
 
   useEffect(() => {
     // Don't redirect on anything until we actually know the auth state —
     // otherwise a logged-in user reads as `isAuthenticated: false` for one
     // frame on cold start and gets bounced into (auth) before flipping back.
-    if (!isHydrated) return;
+    if (!isReady) return;
 
     const currentSegment = segments[0] as string | undefined;
     const inAuthGroup = currentSegment === "(auth)";
@@ -56,7 +63,15 @@ export default function RootLayout() {
     // If currentSegment is undefined or outside both groups (e.g. a route
     // not in either group), we deliberately do nothing here — there's no
     // auth-based redirect rule for that case yet.
-  }, [isAuthenticated, isHydrated, segments, router]);
+  }, [isAuthenticated, isReady, segments, router]);
+
+  if (!isReady) {
+    return (
+      <SafeAreaProvider>
+        <View style={{ flex: 1, backgroundColor: SPLASH_BG }} />
+      </SafeAreaProvider>
+    );
+  }
 
   return (
     <SafeAreaProvider>

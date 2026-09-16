@@ -26,7 +26,7 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       const url = originalRequest.url || '';
-      if (url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/forgot-password')) {
+      if (url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/forgot-password') || url.includes('/auth/refresh')) {
         return Promise.reject(error);
       }
 

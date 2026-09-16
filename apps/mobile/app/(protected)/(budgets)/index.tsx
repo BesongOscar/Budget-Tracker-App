@@ -89,7 +89,7 @@ export default function BudgetOverviewScreen() {
           }
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="add" size={28} color="#007AFF" />
+          <Ionicons name="add" size={28} color="#000" />
         </TouchableOpacity>
       </View>
 
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     paddingBottom: 25,
     backgroundColor: "#FFFFFF",
   },
-  title: { fontSize: 28, fontWeight: "700", color: "#000" },
+  title: { fontSize: 27, fontWeight: "700", color: "#000" },
   periodBar: {
     flexDirection: "row",
     alignItems: "center",
